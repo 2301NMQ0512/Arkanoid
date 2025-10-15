@@ -1,78 +1,75 @@
-import ball.Ball;
-import ball.Velocity;
-import biuoop.DrawSurface;
-import biuoop.KeyboardSensor;
-import geometry.Point;
-import geometry.Rectangle;
-import game.GameLevel;
-import game.Sprite;
+package collidable;
 
+import geometry.Rect;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Color;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import ball.Ball;
 
-
-public class Paddle implements Sprite, Collideable{
-    private static int step;
+public class Paddle implements Collidable {
+    private Rect rect;
     private Color color;
-    private Rectangle paddle;
-    private static double guiWidthLeft = 10;
-    private static double guiWidthRight = 780;
-    private biuoop.KeyboardSensor keyboard;
-    private double[] regionborders = new double[4];
-}
+    private int moveSpeed;
+    private int leftBound, rightBound;
 
-public Paddle(Rectangle, paddle, Color color, biuoop,KeyboardSensor keybboard, int thespeed) {
-    this.color = color;
-    this.paddle = paddle;
-    this.keyboard = keyboard;
-    step = thespeed;
-}
-
-public void moveLeft() {
-    if (paddle.getUpperLeft().getX() - step <= guiWidthLeft) {
-        this.paddle = new Rectangle(new Point(guiWidthLeft + step + 2,
-                paddle.getUpperLeft().getY()), paddle.getWidth(), paddle.getHeight());
+    public Paddle(Rect rect, Color color, int moveSpeed, int leftBound, int rightBound) {
+        this.rect = rect;
+        this.color = color;
+        this.moveSpeed = moveSpeed;
+        this.leftBound = leftBound;
+        this.rightBound = rightBound;
     }
-    this.paddle = new Rectangle(new Point(paddle.getUpperLeft().getX() - step,
-            paddle.getUpperLeft().getY()), paddle.getWidth(), paddle.getHeight());
-}
 
-public void moveRight() {
-    if (paddle.getUpperLeft().getX() + step + paddle.getWidth() >= guiWidthRight) {
-        this.paddle = new Rectangle(new Point(guiWidthRight - paddle.getWidth() - step + 5,
-                paddle.getUpperLeft().getY()), paddle.getWidth(), paddle.getHeight());
+    @Override
+    public Rect getCollisionRectangle() { return rect; }
+
+    @Override
+    public void onHit(Ball hitter) {
     }
-    this.paddle = new Rectangle(new Point(paddle.getUpperLeft().getX() + step,
-            paddle.getUpperLeft().getY()), paddle.getWidth(), paddle.getHeight());
-}
 
-public void drawOn(DrawSurface d) {
-    d.setColor(color);
-    d.drawRectangle((int) this.paddle.getUpperLeft().getX(),
-            (int) this.paddle.getUpperLeft().getY(),
-            (int) this.paddle.getWidth(), (int) this.paddle.getHeight());
-    d.fillRectangle((int) paddle.getUpperLeft().getX(),
-            (int) this.paddle.getUpperLeft().getY(),
-            (int) this.paddle.getWidth(), (int) this.paddle.getHeight());
-    d.setColor(Color.black);
-    d.drawRectangle((int) this.paddle.getUpperLeft().getX(),
-            (int) this.paddle.getUpperLeft().getY(),
-            (int) this.paddle.getWidth(), (int) this.paddle.getHeight());
-}
-
-public void timePassed() {
-    if (this.keyboard.isPressed(KeyboardSensor.LEFT_KEY)) {
-        this.moveLeft();
+    public void drawOn(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(color);
+        g2.fillRect((int)rect.getX(), (int)rect.getY(), (int)rect.getWidth(), (int)rect.getHeight());
     }
-    if (this.keyboard.isPressed(KeyboardSensor.RIGHT_KEY)) {
-        this.moveRight();
+
+    public void moveLeft() {
+        double newX = rect.getX() - moveSpeed;
+        if (newX < leftBound) newX = leftBound;
+        rect = new Rect(newX, rect.getY(), rect.getWidth(), rect.getHeight());
     }
-}
 
-public Rectangle getCollisionRectangle() {
-    return this.paddle;
-}
+    public void moveRight() {
+        double newX = rect.getX() + moveSpeed;
+        if (newX + rect.getWidth() > rightBound) newX = rightBound - rect.getWidth();
+        rect = new Rect(newX, rect.getY(), rect.getWidth(), rect.getHeight());
+    }
 
-public int checkRegion(Point collisionPoint) {
-    double paddle StartingX = paddle.getUpperleft().getX();
-    
+    public KeyListener getKeyListener() {
+        return new KeyListener() {
+            private boolean left = false;
+            private boolean right = false;
+
+            @Override
+            public void keyTyped(KeyEvent e) {}
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int code = e.getKeyCode();
+                if (code == KeyEvent.VK_LEFT) left = true;
+                if (code == KeyEvent.VK_RIGHT) right = true;
+                if (left) moveLeft();
+                if (right) moveRight();
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                int code = e.getKeyCode();
+                if (code == KeyEvent.VK_LEFT) left = false;
+                if (code == KeyEvent.VK_RIGHT) right = false;
+            }
+        };
+    }
 }
