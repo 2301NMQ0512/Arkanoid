@@ -97,12 +97,12 @@ public class GameLevel extends JPanel {
 
     private void gameLoop() {
         sprites.notifyAllTimePassed();
-        // cập nhật paddle mỗi frame
         paddle.update();
-        //powerup roi, ktra xem player co nhat ko
+        // update powerups separately (they are also sprites but we manage add/remove)
         for (PowerUp p : new ArrayList<>(powerUps)) {
             p.timePassed();
         }
+
         repaint();
     }
 
@@ -125,12 +125,13 @@ public class GameLevel extends JPanel {
 
         sprites.drawAllOn(g);
 
-        // HUD
+        // HUD: score and lives
         g.setColor(Color.BLACK);
         g.drawString("Score: " + score, 10, 20);
         g.drawString("Lives: " + lives, 10, 40);
     }
 
+    // called by Block when it's destroyed
     public void addScore(int delta) {
         this.score += delta;
     }
@@ -154,7 +155,6 @@ public class GameLevel extends JPanel {
         switch (t) {
             case EXPAND:
                 paddle.expand(60);
-                // thu nhỏ lại sau 8s
                 new javax.swing.Timer(8000, e -> {
                     paddle.expand(-60); // thu nhỏ lại
                 }) {{
@@ -162,8 +162,9 @@ public class GameLevel extends JPanel {
                     start();
                 }};
                 break;
+
             case FASTBALL:
-                activateFastball(8000); // 8 s
+                activateFastball(8000); // 8 seconds
                 break;
             case EXTRA_LIFE:
                 lives += 1;
