@@ -11,6 +11,7 @@ import ball.Ball;
 public class GameEnvironment {
     private List<Collidable> collidables = new ArrayList<>();
     private int leftBound = 0, rightBound = 800, topBound = 0, bottomBound = 600;
+    private Runnable onBallLost;
 
     public void addCollidable(Collidable c) { collidables.add(c); }
     public void removeCollidable(Collidable c) { collidables.remove(c); }
@@ -38,5 +39,10 @@ public class GameEnvironment {
 
     public void setBounds(int left, int right, int top, int bottom) {
         this.leftBound = left; this.rightBound = right; this.topBound = top; this.bottomBound = bottom;
+    }
+
+    public void setBallLostHandler(Runnable r) { this.onBallLost = r; }
+    public void notifyBallLost() {
+        if (onBallLost != null) onBallLost.run();
     }
 }
