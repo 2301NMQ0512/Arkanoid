@@ -42,55 +42,87 @@ public class Ball implements Sprite {
     }
 
     private void moveOneStep() {
-        double nextX = center.getX() + velocity.getDx();
-        double nextY = center.getY() + velocity.getDy();
+        double dx = velocity.getDx();
+        double dy = velocity.getDy();
 
-        Collidable hit = environment.getCollidableAt(nextX, nextY, radius);
-        if (hit != null) {
-            Rect r = hit.getCollisionRectangle();
-            boolean collidedVertically = (center.getY() <= r.getTop() && nextY >= r.getTop()) ||
-                    (center.getY() >= r.getBottom() && nextY <= r.getBottom());
-            boolean collidedHorizontally = (center.getX() <= r.getLeft() && nextX >= r.getLeft()) ||
-                    (center.getX() >= r.getRight() && nextX <= r.getRight());
+        // Sub-stepping để tránh xuyên vật khi dx/dy lớn
+        double maxStep = Math.max(Math.abs(dx), Math.abs(dy));
+        int steps = (int) Math.ceil(maxStep / (double) Math.max(1, radius)); // cứ mỗi bán kính 1 bước
+        if (steps < 1) steps = 1;
 
+        double stepDx = dx / steps;
+        double stepDy = dy / steps;
 
-            hit.onHit(this);
+        for (int s = 0; s < steps; s++) {
+            double testX = center.getX() + stepDx;
+            double testY = center.getY() + stepDy;
 
-            if (collidedVertically) {
-                velocity.setDy(-velocity.getDy());
-            } else if (collidedHorizontally) {
-                velocity.setDx(-velocity.getDx());
+            Collidable hit = environment.getCollidableAt(testX, testY, radius);
+            if (hit != null) {
+                Rect r = hit.getCollisionRectangle();
+
+                // detect approximate side based on this small step
+                boolean collidedVertically = (center.getY() <= r.getTop() && testY >= r.getTop()) ||
+                        (center.getY() >= r.getBottom() && testY <= r.getBottom());
+                boolean collidedHorizontally = (center.getX() <= r.getLeft() && testX >= r.getLeft()) ||
+                        (center.getX() >= r.getRight() && testX <= r.getRight());
+
+                // let the object handle any game-specific logic (block destroyed, power-up spawn, ...)
+                hit.onHit(this);
+
+                // Special handling for paddle: paddle decides direction — push ball above paddle
+                if (hit instanceof collidable.Paddle) {
+                    // ensure velocity already set by paddle.onHit; place ball above paddle
+                    center.setY(r.getTop() - radius - 1);
+                    // small x adjustment so it doesn't repeatedly collide at same pixel
+                    center.setX(center.getX() + velocity.getDx() * 0.5);
+                    return;
+                }
+
+                // For other collidables (blocks, walls), reflect velocity depending on side
+                if (collidedVertically) {
+                    velocity.setDy(-velocity.getDy());
+                } else if (collidedHorizontally) {
+                    velocity.setDx(-velocity.getDx());
+                } else {
+                    // ambiguous corner — invert both
+                    velocity.setDx(-velocity.getDx());
+                    velocity.setDy(-velocity.getDy());
+                }
+
+                // move a bit along new velocity so we are outside the object
+                center.setX(center.getX() + velocity.getDx());
+                center.setY(center.getY() + velocity.getDy());
+                return;
             } else {
-                velocity.setDy(-velocity.getDy());
-                velocity.setDx(-velocity.getDx());
-            }
-            center.setX(center.getX() + velocity.getDx());
-            center.setY(center.getY() + velocity.getDy());
-        } else {
-            double leftBound = environment.getLeftBound() + radius;
-            double rightBound = environment.getRightBound() - radius;
-            double topBound = environment.getTopBound() + radius;
-            double bottomBound = environment.getBottomBound() - radius;
+                // no collision for this sub-step: commit it
+                center.setX(testX);
+                center.setY(testY);
 
-            if (nextX < leftBound) {
-                velocity.setDx(-velocity.getDx());
-                center.setX(leftBound);
-            } else if (nextX > rightBound) {
-                velocity.setDx(-velocity.getDx());
-                center.setX(rightBound);
-            } else {
-                center.setX(nextX);
-            }
+                // bounds check (walls)
+                double leftBound = environment.getLeftBound() + radius;
+                double rightBound = environment.getRightBound() - radius;
+                double topBound = environment.getTopBound() + radius;
+                double bottomBound = environment.getBottomBound() - radius;
 
-            if (nextY < topBound) {
-                velocity.setDy(-velocity.getDy());
-                center.setY(topBound);
-            } else if (nextY > bottomBound) {
-                velocity.setDy(-velocity.getDy());
-                center.setY(bottomBound);
-            } else {
-                center.setY(nextY);
+                if (center.getX() < leftBound) {
+                    velocity.setDx(-velocity.getDx());
+                    center.setX(leftBound);
+                } else if (center.getX() > rightBound) {
+                    velocity.setDx(-velocity.getDx());
+                    center.setX(rightBound);
+                }
+
+                if (center.getY() < topBound) {
+                    velocity.setDy(-velocity.getDy());
+                    center.setY(topBound);
+                } else if (center.getY() > bottomBound) {
+                    // ball lost
+                    environment.notifyBallLost();
+                    return;
+                }
             }
         }
     }
+
 }
