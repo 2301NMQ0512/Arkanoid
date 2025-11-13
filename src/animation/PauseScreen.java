@@ -1,110 +1,86 @@
-package animation; // <-- THAY ĐỔI: Bây giờ là package 'animation'
+package animation;
 
 import biuoop.DrawSurface;
 import biuoop.KeyboardSensor;
 import geometry.Point;
 import geometry.Rectangle;
+import menu.MenuSelection;
+
 import java.awt.Color;
-// --- CÁC IMPORT MỚI ĐÃ ĐƯỢC THÊM VÀO ---
-import menu.MenuSelection; // <-- THÊM MỚI: Import từ package 'menu'
-import menu.MouseSensor;   // <-- THÊM MỚI: Import từ package 'menu'
-// ------------------------------------
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 
 /**
- * Animation cho màn hình tạm dừng.
+ * Màn hình tạm dừng có các nút điều khiển được căn giữa hoàn hảo.
  */
 public class PauseScreen implements Animation {
     private KeyboardSensor keyboard;
-    private MouseSensor mouse;
     private MenuSelection selection;
+    private boolean isAlreadyPressed;
 
-    // Hằng số bố cục nút
-    private static final int BUTTON_WIDTH = 200;
+    // Layout constants
+    private static final int BUTTON_WIDTH = 250;
     private static final int BUTTON_HEIGHT = 50;
     private static final int BUTTON_SPACING = 20;
-    private static final int CENTER_X = 800 / 2;
-    private static final int START_Y = 250;
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 600;
+    private static final int CENTER_X = SCREEN_WIDTH / 2;
+    private static final int CENTER_Y = SCREEN_HEIGHT / 2;
 
-    public PauseScreen(KeyboardSensor k, MouseSensor m) {
+    public PauseScreen(KeyboardSensor k) {
         this.keyboard = k;
-        this.mouse = m;
         this.selection = MenuSelection.NONE;
+        this.isAlreadyPressed = true;
     }
 
     @Override
     public void doOneFrame(DrawSurface d) {
-        // 1. Vẽ lớp phủ bán trong suốt
-        d.setColor(new Color(0, 0, 0, 150)); // Đen mờ 60%
-        d.fillRectangle(0, 0, 800, 600);
+        // --- Background overlay ---
+        d.setColor(new Color(0, 0, 0)); // translucent black overlay
+        d.fillRectangle(0, 0, d.getWidth(), d.getHeight());
 
-        // 2. Vẽ tiêu đề "PAUSED"
+        // --- Title ---
+        String title = "PAUSED";
+        int titleWidth = getTextWidth(title, 60);
         d.setColor(Color.WHITE);
-        d.drawText(CENTER_X - 110, 150, "PAUSED", 60);
+        d.drawText(CENTER_X - (titleWidth / 2), 150, title, 60);
 
-        // 3. Lấy trạng thái chuột
-        int mouseX = (int) this.mouse.getX();
-        int mouseY = (int) this.mouse.getY();
-        boolean mousePressed = this.mouse.isPressed(MouseSensor.LEFT_CLICK);
+        // --- Button positions ---
+        int totalHeight = (2 * BUTTON_HEIGHT) + BUTTON_SPACING; // 2 buttons
+        int startY = CENTER_Y - (totalHeight / 2); // vertically centered
 
-        // 4. Vẽ các nút
-        int currentY = START_Y;
+        // --- CONTINUE Button ---
+        boolean continuePressed = keyboard.isPressed(KeyboardSensor.ENTER_KEY);
+        drawButton(d, "CONTINUE (Enter)", startY, Color.GREEN.darker(), continuePressed);
 
-        // --- Nút CONTINUE ---
-        Rectangle continueRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean continueHover = isMouseInside(continueRect, mouseX, mouseY);
-
-        // --- SỬA LỖI "STICKY KEY": Dùng "space" để tiếp tục ---
-        boolean continuePressed = keyboard.isPressed("space");
-        drawButton(d, "CONTINUE (Space)", continueRect, Color.GREEN.darker(), continueHover || continuePressed);
-
-        if (continuePressed || (continueHover && mousePressed)) {
-            this.selection = MenuSelection.PLAY; // PLAY = Continue
-        }
-        currentY += BUTTON_HEIGHT + BUTTON_SPACING;
-
-        // --- Nút REPLAY (RESTART) ---
-        Rectangle restartRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean restartHover = isMouseInside(restartRect, mouseX, mouseY);
-        boolean restartPressed = keyboard.isPressed("r");
-        drawButton(d, "REPLAY (R)", restartRect, Color.BLUE.darker(), restartHover || restartPressed);
-        if (restartPressed || (restartHover && mousePressed)) {
-            this.selection = MenuSelection.RESTART;
-        }
-        currentY += BUTTON_HEIGHT + BUTTON_SPACING;
-
-        // --- Nút EXIT TO MENU ---
-        Rectangle exitRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean exitHover = isMouseInside(exitRect, mouseX, mouseY);
+        // --- EXIT Button ---
         boolean exitPressed = keyboard.isPressed("e");
-        drawButton(d, "EXIT (E)", exitRect, Color.RED.darker(), exitHover || exitPressed);
-        if (exitPressed || (exitHover && mousePressed)) {
-            this.selection = MenuSelection.EXIT;
+        drawButton(d, "EXIT TO MENU (E)", startY + BUTTON_HEIGHT + BUTTON_SPACING, Color.RED.darker(), exitPressed);
+
+        // --- Input handling (debounce/sticky key fix) ---
+        if (this.isAlreadyPressed) {
+            if (!keyboard.isPressed(KeyboardSensor.ENTER_KEY)
+                    && !keyboard.isPressed("e")
+                    && !keyboard.isPressed("p")) {
+                this.isAlreadyPressed = false;
+            }
+        } else {
+            if (continuePressed) {
+                this.selection = MenuSelection.PLAY;
+            } else if (exitPressed) {
+                this.selection = MenuSelection.EXIT;
+            }
         }
     }
 
-    // --- Các phương thức trợ giúp ---
+    /**
+     * Draws a centered button with properly centered text.
+     */
+    private void drawButton(DrawSurface d, String text, int y, Color baseColor, boolean isActive) {
+        int x = CENTER_X - (BUTTON_WIDTH / 2);
+        Rectangle buttonRect = new Rectangle(new Point(x, y), BUTTON_WIDTH, BUTTON_HEIGHT);
 
-    @Override
-    public boolean shouldStop() {
-        return this.selection != MenuSelection.NONE;
-    }
-
-    public MenuSelection getSelection() {
-        return this.selection;
-    }
-
-    public void resetSelection() {
-        this.selection = MenuSelection.NONE;
-    }
-
-    private boolean isMouseInside(Rectangle rect, int x, int y) {
-        return (x >= rect.getUpperLeft().getX() &&
-                x <= rect.getUpperLeft().getX() + rect.getWidth() &&
-                y >= rect.getUpperLeft().getY() &&
-                y <= rect.getUpperLeft().getY() + rect.getHeight());
-    }
-
-    private void drawButton(DrawSurface d, String text, Rectangle buttonRect, Color baseColor, boolean isActive) {
         Color fillColor = baseColor;
         Color outlineColor = baseColor.brighter();
 
@@ -113,19 +89,42 @@ public class PauseScreen implements Animation {
             outlineColor = Color.WHITE;
         }
 
-        int x = (int) buttonRect.getUpperLeft().getX();
-        int y = (int) buttonRect.getUpperLeft().getY();
-        int w = (int) buttonRect.getWidth();
-        int h = (int) buttonRect.getHeight();
-
+        // Draw button box
         d.setColor(fillColor);
-        d.fillRectangle(x, y, w, h);
-        d.setColor(outlineColor);
-        d.drawRectangle(x, y, w, h);
+        d.fillRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
+                (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
 
+        d.setColor(outlineColor);
+        d.drawRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
+                (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
+
+        // --- Center text properly ---
+        int textWidth = getTextWidth(text, 24);
         d.setColor(Color.WHITE);
-        // Căn giữa văn bản (cách đơn giản)
-        int textWidth = text.length() * 10;
-        d.drawText(x + (w / 2) - (textWidth / 2) - 5, y + (h / 2) + 8, text, 24);
+        int textX = x + (BUTTON_WIDTH / 2) - (textWidth / 2);
+        int textY = y + (BUTTON_HEIGHT / 2) + 8; // visually centered
+        d.drawText(textX, textY, text, 24);
+    }
+
+    /**
+     * Uses FontMetrics to accurately measure string width.
+     */
+    private int getTextWidth(String text, int fontSize) {
+        BufferedImage tempImg = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = tempImg.getGraphics();
+        g.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, fontSize));
+        FontMetrics fm = g.getFontMetrics();
+        int width = fm.stringWidth(text);
+        g.dispose();
+        return width;
+    }
+
+    @Override
+    public boolean shouldStop() {
+        return this.selection != MenuSelection.NONE;
+    }
+
+    public MenuSelection getSelection() {
+        return this.selection;
     }
 }
