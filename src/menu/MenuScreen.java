@@ -7,11 +7,14 @@ import geometry.Point;
 import geometry.Rectangle;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.Objects;
 import javax.imageio.ImageIO;
 
+
+
 public class MenuScreen implements Animation {
-    private KeyboardSensor keyboard;
-    private MouseSensor mouse; // <-- THÊM MỚI: Biến thành viên cho chuột
+    private final KeyboardSensor keyboard;
+    private final MouseSensor mouse;
     private MenuSelection selection;
     private BufferedImage backgroundImage;
 
@@ -21,15 +24,15 @@ public class MenuScreen implements Animation {
     private static final int CENTER_X = 800 / 2;
     private static final int START_Y = 250;
 
-    /**
-     * Hàm khởi tạo mới, chấp nhận cả KeyboardSensor và mousesensor.
-     */
-    public MenuScreen(KeyboardSensor k, MouseSensor m) { // <-- CẬP NHẬT
+    public MenuScreen(KeyboardSensor k, MouseSensor m) {
         this.keyboard = k;
-        this.mouse = m; // <-- THÊM MỚI
+        this.mouse = m;
         this.selection = MenuSelection.NONE;
         try {
-            this.backgroundImage = ImageIO.read(getClass().getClassLoader().getResourceAsStream("backgrounds/arcade_menu.jpg"));
+            // Đường dẫn tài nguyên (resource path) chính xác
+            String imagePath = "resources/backgrounds/arcade_menu.jpg";
+            this.backgroundImage = ImageIO.read(Objects.requireNonNull(
+                    getClass().getClassLoader().getResourceAsStream(imagePath)));
         } catch (Exception e) {
             System.err.println("Không thể tải ảnh nền cho menu: " + e.getMessage());
             this.backgroundImage = null;
@@ -47,17 +50,16 @@ public class MenuScreen implements Animation {
             drawTitle(d);
         }
 
-        // --- 2. Lấy trạng thái chuột (MỚI) ---
-        int mouseX = (int) this.mouse.getX();
-        int mouseY = (int) this.mouse.getY();
-        // Kiểm tra xem chuột trái có đang được nhấn *trong khung hình này* không
+        // --- 2. Lấy trạng thái chuột ---
+        int mouseX = this.mouse.getX();
+        int mouseY = this.mouse.getY();
         boolean mousePressed = this.mouse.isPressed(MouseSensor.LEFT_CLICK);
 
         // --- 3. Xác định vùng nút & Kiểm tra Input ---
         int currentY = START_Y;
 
         // --- Nút PLAY ---
-        Rectangle playRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
+        Rectangle playRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean playHover = isMouseInside(playRect, mouseX, mouseY);
         drawButton(d, "PLAY", playRect, Color.GREEN.darker(), playHover || keyboard.isPressed("enter"));
         if (keyboard.isPressed("enter") || (playHover && mousePressed)) {
@@ -66,7 +68,7 @@ public class MenuScreen implements Animation {
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
         // --- Nút HIGH SCORE ---
-        Rectangle hsRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
+        Rectangle hsRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean hsHover = isMouseInside(hsRect, mouseX, mouseY);
         drawButton(d, "HIGH SCORE", hsRect, Color.CYAN.darker(), hsHover || keyboard.isPressed("h"));
         if (keyboard.isPressed("h") || (hsHover && mousePressed)) {
@@ -75,7 +77,7 @@ public class MenuScreen implements Animation {
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
         // --- Nút RESTART ---
-        Rectangle restartRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
+        Rectangle restartRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean restartHover = isMouseInside(restartRect, mouseX, mouseY);
         drawButton(d, "RESTART", restartRect, Color.BLUE.darker(), restartHover || keyboard.isPressed("r"));
         if (keyboard.isPressed("r") || (restartHover && mousePressed)) {
@@ -84,7 +86,7 @@ public class MenuScreen implements Animation {
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
         // --- Nút EXIT ---
-        Rectangle exitRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
+        Rectangle exitRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean exitHover = isMouseInside(exitRect, mouseX, mouseY);
         drawButton(d, "EXIT", exitRect, Color.RED.darker(), exitHover || keyboard.isPressed("escape"));
         if (keyboard.isPressed("escape") || (exitHover && mousePressed)) {
@@ -92,9 +94,6 @@ public class MenuScreen implements Animation {
         }
     }
 
-    /**
-     * Hàm trợ giúp mới để kiểm tra xem chuột có nằm trong một vùng không.
-     */
     private boolean isMouseInside(Rectangle rect, int x, int y) {
         return (x >= rect.getUpperLeft().getX() &&
                 x <= rect.getUpperLeft().getX() + rect.getWidth() &&
@@ -110,13 +109,12 @@ public class MenuScreen implements Animation {
     }
 
     /**
-     * Hàm drawButton được cập nhật để chấp nhận Rectangle và trạng thái 'active'.
+     * Hàm drawButton (Đã sửa lỗi căn giữa).
      */
     private void drawButton(DrawSurface d, String text, Rectangle buttonRect, Color baseColor, boolean isActive) {
         Color fillColor = baseColor;
         Color outlineColor = baseColor.brighter();
 
-        // Hiệu ứng Hover/Nhấn phím
         if (isActive) {
             fillColor = baseColor.brighter();
             outlineColor = Color.WHITE;
@@ -133,8 +131,12 @@ public class MenuScreen implements Animation {
         d.drawRectangle(x, y, w, h);
 
         d.setColor(Color.WHITE);
-        int textWidth = text.length() * 10;
+
+        // --- SỬA LỖI CĂN GIỮA ---
+        // Tăng hệ số nhân từ 11.5 lên 12.5 để ước lượng chính xác hơn
+        int textWidth = (int) (text.length() * 14.5);
         d.drawText(x + (w / 2) - (textWidth / 2), y + (h / 2) + 8, text, 24);
+        // -------------------------
     }
 
     @Override
