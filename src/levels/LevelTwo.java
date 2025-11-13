@@ -29,7 +29,7 @@ public class LevelTwo implements LevelInformation {
      */
     @Override
     public int numberOfBalls() {
-        return 10;
+        return 2;
     }
 
     /**
@@ -57,7 +57,7 @@ public class LevelTwo implements LevelInformation {
      */
     @Override
     public int paddleSpeed() {
-        return 4;
+        return 6;
     }
 
     /**
@@ -67,7 +67,7 @@ public class LevelTwo implements LevelInformation {
      */
     @Override
     public int paddleWidth() {
-        return 340;
+        return 150;
     }
 
     /**

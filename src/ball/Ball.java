@@ -204,8 +204,8 @@ public class Ball implements Sprite {
         Velocity v = this.getVelocity();
 
         // Tính toán dx và dy mới
-        double newDx = v.getDx() * 1.2;
-        double newDy = v.getDy() * 1.2;
+        double newDx = v.getDx() * 1.5;
+        double newDy = v.getDy() * 1.5;
 
         // Giới hạn tốc độ tối đa (tùy chọn)
         // double newSpeed = Math.sqrt(newDx * newDx + newDy * newDy);
