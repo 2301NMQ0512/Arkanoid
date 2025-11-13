@@ -6,15 +6,15 @@ import game.SpriteCollection;
 
 import java.awt.Color;
 
-
-
 public class CountdownAnimation implements Animation {
 
     private double numOfSeconds;
     private int countFrom;
     private SpriteCollection gameScreen;
     private boolean stop;
-
+    private Sleeper sleeper;
+    private long sleepTimePerCount;
+    private boolean firstFrame;
 
     public CountdownAnimation(double numOfSeconds,
                               int countFrom,
@@ -23,27 +23,37 @@ public class CountdownAnimation implements Animation {
         this.countFrom = countFrom;
         this.gameScreen = gameScreen;
         this.stop = false;
-
+        this.sleeper = new Sleeper();
+        // Tính toán thời gian ngủ cho mỗi số đếm
+        this.sleepTimePerCount = (long) (numOfSeconds * 1000 / (double) countFrom);
+        this.firstFrame = true;
     }
-
 
     @Override
     public void doOneFrame(DrawSurface d) {
-        gameScreen.drawAllOn(d);
-        Sleeper mySleeper = new Sleeper();
-        d.setColor(Color.red);
-        d.drawText(d.getWidth() / 2, d.getHeight() / 2, Integer.toString(countFrom--), 66);
+        // SỬA LỖI LOGIC: Không ngủ ở khung hình đầu tiên, chỉ ngủ *giữa* các số
+        if (firstFrame) {
+            firstFrame = false;
+        } else {
+            // Ngủ trong một khoảng thời gian đã tính toán
+            this.sleeper.sleepFor(this.sleepTimePerCount);
+        }
 
-        if (this.countFrom == 2) {
+        // SỬA LỖI LOGIC: Dừng *trước khi* vẽ số 0
+        if (this.countFrom <= 0) {
+            this.stop = true;
             return;
         }
-        numOfSeconds--;
-        mySleeper.sleepFor(1000);
-        if (numOfSeconds < 0) {
-            this.stop = true;
-//        }
-        }
+
+        // Vẽ màn hình game và số đếm
+        gameScreen.drawAllOn(d);
+        d.setColor(Color.RED);
+        d.drawText(d.getWidth() / 2 - 16, d.getHeight() / 2, Integer.toString(countFrom), 66);
+
+        // Giảm số đếm
+        countFrom--;
     }
+
     public boolean shouldStop() {
         return this.stop;
     }
