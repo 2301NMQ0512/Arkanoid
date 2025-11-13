@@ -1,160 +1,109 @@
-package game;
+package game; // (Hoặc package của bạn)
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Scanner;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
-/**
- * The type Score persistence.
- */
-public class ScorePersistence {
 
-    private String outputDir = new File("").getAbsolutePath();
-    private String fileName = "highscores.txt";
-    private String absolutePath = outputDir + File.separator + fileName;
+public class ScorePersistence implements Serializable {
 
-    private int fileScore;
+    @Serial
+    private static final long serialVersionUID = 1L;
+    private static final String FILENAME = "highscores.ser"; // Tên tệp lưu
+    private static final int MAX_SCORES_TO_KEEP = 10;
 
-    /**
-     * Instantiates a new Score persistence.
-     *
-     * @throws Exception the exception
-     */
-    public ScorePersistence() throws Exception {
-        setFileScore();
-    }
 
-    /**
-     * Update file if higher.
-     *
-     * @param currentHighScore the current high score
-     */
-    public void updateFileIfHigher(int currentHighScore) {
-        if (shouldUpdate(currentHighScore)) {
-//            System.out.println("Updating new high score: " + currentHighScore);
-            writeNewHighScoreToFile(currentHighScore);
-//        } else {
-////            System.out.println(
-////                    "File score is: " + fileScore + ", currentScore is: "
-// + currentHighScore + " no need to update");
+    @SuppressWarnings("unchecked")
+    public List<ScoreInfo> readScores() {
+        List<ScoreInfo> scores = new ArrayList<>();
+        File file = new File(FILENAME);
+
+        if (!file.exists()) {
+            return scores;
         }
-    }
 
-    /**
-     * updates the file and writes the new high score.
-     *
-     * @param currentHighScore the current high score.
-     */
-    private void writeNewHighScoreToFile(int currentHighScore) {
-        try {
-            FileWriter myWriter = new FileWriter(absolutePath);
-//            System.out.println("Writing to file 'The highest score so far is: " + currentHighScore + "'");
-            myWriter.write("The highest score so far is: " + currentHighScore);
-            myWriter.close();
-//            System.out.println("Successfully wrote to the file.");
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            scores = (List<ScoreInfo>) ois.readObject();
+        } catch (IOException | ClassNotFoundException | ClassCastException e) {
+            System.err.println("Không thể đọc tệp điểm cao. Tạo tệp mới: " + e.getMessage());
+            file.delete();
+            return new ArrayList<>();
         }
+
+        sortScores(scores);
+        return scores;
     }
 
-    /**
-     * checks whether the score in the file isn't higher than the current given score.
-     *
-     * @param currentHighScore the current score
-     * @return true of false
-     */
-    private boolean shouldUpdate(int currentHighScore) {
-        return this.fileScore < currentHighScore;
-    }
 
-    /**
-     * creates a new high score file if there is no file.
-     *
-     * @throws Exception checks if there is no error by creating the file.
-     */
-    private void setFileScore() throws Exception {
-        if (isDirEmpty(Paths.get(outputDir))) {
-//            System.out.println("Directory is empty, Creating new file.");
-            createNewFile();
-        }
-        this.fileScore = readFromFile();
-    }
+    public void addScore(String playerName, int newScore) {
+        List<ScoreInfo> scores = readScores();
 
-    /**
-     * checks if there is a folder called HighScores, and creates one if not.
-     *
-     * @param directory the directory of the project
-     * @return true or false
-     */
-    private boolean isDirEmpty(final Path directory) {
-        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(directory)) {
-            return !dirStream.iterator().hasNext();
-        } catch (Exception e) {
-            try {
-                // if there is no directory called HighScores at the project, create one
-                Files.createDirectories(directory);
-            } catch (IOException e1) {
-                e1.printStackTrace();
+        ScoreInfo existingEntry = null;
+        int existingScore = -1;
+
+
+        for (ScoreInfo info : scores) {
+            if (info.getPlayerName().equalsIgnoreCase(playerName)) {
+                existingEntry = info;
+                existingScore = info.getScore();
+                break; // Đã tìm thấy
             }
-            return true;
         }
-    }
 
-    /**
-     * creates a new file.
-     *
-     * @throws IOException an error if there is a problem.
-     */
-    private void createNewFile() throws IOException {
-        new File(absolutePath).createNewFile();
-    }
 
-    /**
-     * Read from file int.
-     *
-     * @return the int
-     * @throws IOException the io exception
-     */
-    public int readFromFile() throws IOException {
-        String data = "";
-        try {
-            File myObj = new File(absolutePath);
-            if (!myObj.exists()) {
-//                System.out.println("HighScore.txt doesn't exist yet, score is 0.");
-                return 0;
+        if (existingEntry != null) {
+            if (newScore > existingScore) {
+                scores.remove(existingEntry);
+                scores.add(new ScoreInfo(playerName, newScore));
+            } else {
+                return;
             }
-            Scanner myReader = new Scanner(myObj);
-            while (myReader.hasNextLine()) {
-                data = myReader.nextLine();
-            }
-            myReader.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
-        if (data == "") {
-//            System.out.println("Reading that file is empty, score is 0.");
-            return 0;
         } else {
-//            System.out.println("Reading score of " + getDigitsFromString(data) + " from file.");
-            return getDigitsFromString(data);
+            scores.add(new ScoreInfo(playerName, newScore));
+        }
+
+        sortScores(scores);
+
+        while (scores.size() > MAX_SCORES_TO_KEEP) {
+            scores.removeLast();
+        }
+
+        writeScores(scores); // Lưu danh sách đã cập nhật
+    }
+    // -----------------------------------------------------
+
+    /**
+     * Ghi đè tệp điểm cao bằng danh sách mới.
+     * (Giữ nguyên, không thay đổi)
+     */
+    private void writeScores(List<ScoreInfo> scores) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILENAME))) {
+            oos.writeObject(scores);
+        } catch (IOException e) {
+            System.err.println("Không thể lưu tệp điểm cao: " + e.getMessage());
         }
     }
 
     /**
-     * gets the score from the entire line in the text file.
-     *
-     * @param str the line
-     * @return the score
+     * Sắp xếp danh sách, điểm cao nhất lên đầu.
+     * (Giữ nguyên, không thay đổi)
      */
-    private int getDigitsFromString(String str) {
-        return Integer.parseInt(str.replaceAll("[^0-9]", ""));
+    private void sortScores(List<ScoreInfo> scores) {
+        scores.sort(Comparator.comparingInt(ScoreInfo::getScore).reversed());
+    }
+    public void clearScores() {
+        File file = new File(FILENAME);
+        if (file.exists()) {
+            try {
+                if (file.delete()) {
+                    System.out.println("Đã xóa tệp điểm cao.");
+                } else {
+                    System.err.println("Không thể xóa tệp điểm cao.");
+                }
+            } catch (SecurityException e) {
+                System.err.println("Lỗi bảo mật khi xóa tệp: " + e.getMessage());
+            }
+        }
     }
 }

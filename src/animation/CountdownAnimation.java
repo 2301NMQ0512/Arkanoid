@@ -8,18 +8,16 @@ import java.awt.Color;
 
 public class CountdownAnimation implements Animation {
 
-    private double numOfSeconds;
     private int countFrom;
-    private SpriteCollection gameScreen;
+    private final SpriteCollection gameScreen;
     private boolean stop;
-    private Sleeper sleeper;
-    private long sleepTimePerCount;
+    private final Sleeper sleeper;
+    private final long sleepTimePerCount;
     private boolean firstFrame;
 
     public CountdownAnimation(double numOfSeconds,
                               int countFrom,
                               SpriteCollection gameScreen) {
-        this.numOfSeconds = numOfSeconds;
         this.countFrom = countFrom;
         this.gameScreen = gameScreen;
         this.stop = false;

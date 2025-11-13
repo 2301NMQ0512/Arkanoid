@@ -8,8 +8,8 @@ import geometry.Point;
  *
  */
 public class CollisionInfo {
-    private Point collisionPoint;
-    private Collidable collisionObject;
+    private final Point collisionPoint;
+    private final Collidable collisionObject;
 
     /**
      * collidable.CollisionInfo.

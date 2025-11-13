@@ -8,8 +8,8 @@ import java.awt.Polygon;
 
 
 public class EndScreenWin implements Animation {
-    private boolean stop;
-    private Counter score;
+    private final boolean stop;
+    private final Counter score;
 
 
     public EndScreenWin(Counter score) {
@@ -29,14 +29,12 @@ public class EndScreenWin implements Animation {
                 if (yPnts[j] < 300) {
                     yPnts[j] = yPnts[j] + 33;
                 }
-                ;
                 if (xPnts[j] < 600) {
                     xPnts[j] = xPnts[j] * 2;
                 }
                 if (yPnts[j] < 500) {
                     yPnts[j] = yPnts[j] * 2;
                 }
-                ;
             }
             Polygon star = new Polygon(xPnts, yPnts, xPnts.length);
             d.setColor(Color.orange.darker());

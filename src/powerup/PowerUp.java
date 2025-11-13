@@ -6,9 +6,10 @@ import geometry.Rectangle;
 import java.awt.Color;
 
 public class PowerUp {
-    private int x, y, size = 18;
-    private int vy = 3; // Speed the power-up falls
-    private PowerUpType type;
+    private final int x;
+    private int y;
+    private final int size = 18;
+    private final PowerUpType type;
     private boolean active = true;
 
     public PowerUp(int x, int y, PowerUpType type) {
@@ -18,15 +19,17 @@ public class PowerUp {
     }
 
     public void update() {
+        // Speed the power-up falls
+        int vy = 3;
         y += vy;
     }
 
-    // Changed to use biuoop.DrawSurface
     public void drawOn(DrawSurface d) {
         Color c = Color.WHITE;
         if (type == PowerUpType.EXPAND_PADDLE) c = Color.GREEN;
         else if (type == PowerUpType.FAST_PADDLE) c = Color.BLUE;
-        else if (type == PowerUpType.FAST_BALL) c = Color.RED;
+
+        else if (type == PowerUpType.MULTI_BALL) c = Color.RED;
 
         d.setColor(c.darker());
         d.fillRectangle(x, y, size, size); // Use DrawSurface's fillRectangle
@@ -34,7 +37,7 @@ public class PowerUp {
         d.fillRectangle(x + 3, y + 3, size - 6, size - 6);
     }
 
-    // Changed to return your game's Rectangle class
+
     public Rectangle getRect() {
         return new Rectangle(new Point(x, y), size, size);
     }

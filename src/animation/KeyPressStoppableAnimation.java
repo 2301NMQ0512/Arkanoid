@@ -5,9 +5,9 @@ import biuoop.KeyboardSensor;
 
 
 public class KeyPressStoppableAnimation implements Animation {
-    private KeyboardSensor keyboard;
-    private String key;
-    private Animation animation;
+    private final KeyboardSensor keyboard;
+    private final String key;
+    private final Animation animation;
     private boolean stop;
     private boolean isAlreadyPressed;
 

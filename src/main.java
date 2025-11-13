@@ -9,23 +9,20 @@ import levels.LevelThree;
 import levels.LevelTwo;
 import menu.MouseSensor;
 
-// (Import các lớp Level của bạn ở đây)
 
-/**
- * Phương thức main, điểm bắt đầu của chương trình.
- * (SỬA LỖI: Đã thêm 'public' vào 'public static void main')
- */
+
+
 void main(String[] args) {
-    // --- 1. Khởi tạo biuoop ---
+
     GUI gui = new GUI("Arkanoid", 800, 600);
     KeyboardSensor keyboard = gui.getKeyboardSensor();
 
-    // Khởi tạo MouseSensor (nó sử dụng Reflection để tự đính vào 'drawingPanel')
+
     MouseSensor mouse = new MouseSensor(gui, keyboard);
 
     AnimationRunner runner = new AnimationRunner(gui);
 
-    // --- 2. Tạo danh sách level ---
+
     List<LevelInformation> levels = createLevelList(args);
     if (levels.isEmpty()) {
         IO.println("Không tìm thấy level hợp lệ. Tải các level mặc định.");
@@ -35,11 +32,11 @@ void main(String[] args) {
         levels.add(new LevelFour());
     }
 
-    // --- 3. Khởi tạo và chạy GameFlow ---
+
     try {
-        // Truyền 'mouse' (mà bạn vừa tạo) vào GameFlow
+
         GameFlow game = new GameFlow(runner, keyboard, mouse, gui, levels);
-        game.runGame(); // Bắt đầu vòng lặp game
+        game.runGame();
     } catch (Exception e) {
         System.err.println("Không thể bắt đầu trò chơi:");
         e.printStackTrace();
@@ -47,9 +44,7 @@ void main(String[] args) {
     }
 }
 
-/**
- * Phân tích các đối số (args) từ dòng lệnh để tạo danh sách level.
- */
+
 private static List<LevelInformation> createLevelList(String[] args) {
     List<LevelInformation> levels = new ArrayList<>();
     for (String arg : args) {

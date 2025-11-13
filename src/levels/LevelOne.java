@@ -3,130 +3,152 @@ package levels;
 import ball.Velocity;
 import biuoop.DrawSurface;
 import collidable.Block;
-import game.GameLevel;
 import game.Sprite;
 import geometry.Rectangle;
 import geometry.Point;
 
 import java.awt.Color;
+import java.awt.Image;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Objects;
+import java.util.Random;
 
 /**
- * Level one. Will have a different amount of blocks and balls than the other levels.
- * Also, the paddle's speed, width and the balls' velocity will be different as well from the
- * other levels.
- *
- * 
+ * Level One hoàn chỉnh:
+ * 1. Nền bằng ảnh (Ricardo Milos 800x600).
+ * 2. 3 hàng gạch với màu sắc ngẫu nhiên.
+ * 3. CÓ VIỀN ĐEN cho mỗi gạch (giống Level Two).
+ * 4. Có nhạc nền.
  */
 public class LevelOne implements LevelInformation {
 
-    /**
-     * the number of the created balls in this level.
-     * @return int the number of the bals
-     */
+    private static final int NUM_ROWS = 3;
+    private static final int BLOCKS_PER_ROW = 12;
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 600;
+
     @Override
     public int numberOfBalls() {
         return 1;
     }
 
-
-    /**
-     * makes the ball to fly directly to the single block and destroy it.
-     */
     @Override
-
     public List<Velocity> initialBallVelocities() {
         List<Velocity> veloList = new ArrayList<>();
-        veloList.add(new Velocity(0, -6));
+        veloList.add(Velocity.fromAngleAndSpeed(0, 6)); // Một quả bóng đi thẳng
         return veloList;
     }
 
-    /**
-     * the speed of the paddle, how fast can he move.
-     * @return int, the speed.
-     */
     @Override
     public int paddleSpeed() {
-        return 8;
-    }
-    /**
-     * sets the width of the paddle.
-     * @return int, the width
-     */
-    @Override
-    public int paddleWidth() {
-        return 110;
+        return 13;
     }
 
-    /**
-     * the name of the level.
-     * @return string
-     */
+    @Override
+    public int paddleWidth() {
+        return 175;
+    }
+
     @Override
     public String levelName() {
-        return "Direct Hit";
+        return "Ricardo Bricks";
     }
 
     @Override
     public Sprite getBackground() {
-        return new Sprite() {
+        try {
+            // Đường dẫn đến tệp ảnh 800x600 của bạn
+            String imagePath = "resources/backgrounds/level_one_bg.png";
+            final Image img = ImageIO.read(Objects.requireNonNull(
+                    getClass().getClassLoader().getResourceAsStream(imagePath)));
 
-            /**
-             * draws the background on the screen.
-             *
-             * @param d the drawing surface
-             */
-            @Override
-            public void drawOn(DrawSurface d) {
-                d.setColor(Color.black);
-                d.fillRectangle(0, 0, (int) GameLevel.getGuiWidth(), (int) GameLevel.getGuiHeight());
-                d.setColor(Color.blue);
-                d.drawCircle((int) GameLevel.getGuiWidth() / 2, 140, 100);
-                d.drawCircle((int) GameLevel.getGuiWidth() / 2, 140, 80);
-                d.drawCircle((int) GameLevel.getGuiWidth() / 2, 140, 60);
-                d.drawLine(280, 135, 380, 135);
-                d.drawLine(420, 135, 520, 135);
-                d.drawLine((int) GameLevel.getGuiWidth() / 2, 40, (int) GameLevel.getGuiWidth() / 2, 126);
-                d.drawLine((int) GameLevel.getGuiWidth() / 2, 150, (int) GameLevel.getGuiWidth() / 2, 250);
-                d.setColor(new Color(220, 205, 45));
-            }
+            return new Sprite() {
+                @Override
+                public void drawOn(DrawSurface d) {
+                    // Dùng phiên bản 3 tham số (vì thư viện của bạn cũ)
+                    // Yêu cầu ảnh nền phải có kích thước 800x600
+                    d.drawImage(0, 0, img);
+                }
 
-            /**
-             * notify the sprite that time has passed.
-             */
-            @Override
-            public void timePassed() {
-//
-            }
-        };
+                @Override
+                public void timePassed() { }
+            };
+
+        } catch (IOException | NullPointerException e) {
+            System.err.println("Không thể tải ảnh nền cho Level 1: " + e.getMessage());
+            // Trả về một nền màu đen đơn giản nếu thất bại
+            return new Sprite() {
+                @Override
+                public void drawOn(DrawSurface d) {
+                    d.setColor(Color.BLACK);
+                    d.fillRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                }
+                @Override
+                public void timePassed() { }
+            };
+        }
     }
 
     /**
-     * creates a single block.
-     *
-     * @return the block inside of a list.
+     * Tạo các hàng gạch với MÀU NGẪU NHIÊN và VIỀN ĐEN.
+     * @return danh sách các gạch
      */
     @Override
     public List<Block> blocks() {
         List<Block> blocks = new ArrayList<>();
-        Rectangle rectangle = new Rectangle(new Point(380,
-                120), 40,
-                40);
-        Block block = new Block(rectangle, Color.red.darker());
-        blocks.add(block);
-        block.colorForStroke(Color.black);
+
+        final double blockWidth = 65;
+        final double blockHeight = 25;
+        double startY = 150;
+        double startX = 10;
+
+        Random rand = new Random();
+
+        for (int j = 0; j < NUM_ROWS; j++) {
+            double currentY = startY + (j * blockHeight);
+
+            for (int i = 0; i < BLOCKS_PER_ROW; i++) {
+                // Tạo màu ngẫu nhiên
+                float r = rand.nextFloat();
+                float g = rand.nextFloat();
+                float b = rand.nextFloat();
+                Color randomColor = new Color(r, g, b);
+
+                double currentX = startX + (i * blockWidth);
+                Point upperLeft = new Point(currentX, currentY);
+                Rectangle rect = new Rectangle(upperLeft, blockWidth, blockHeight);
+
+                Block block = new Block(rect, randomColor);
+
+                // <-- THÊM MỚI: Thêm viền đen, giống hệt LevelTwo
+                block.colorForStroke(Color.black);
+
+                blocks.add(block);
+            }
+        }
         return blocks;
     }
 
-    /**
-     * the amount of the blocks in the beginning of the level.
-     * @return int, the number of the blocks
-     */
     @Override
     public int numberOfBlocksToRemove() {
-        return blocks().size();
+        return NUM_ROWS * BLOCKS_PER_ROW; // 3 * 12 = 36
     }
 
+    /**
+     * THÊM MỚI: Chỉ định nhạc nền cho Level 1.
+     * (Triển khai từ bước trước)
+     */
+    @Override
+    public String getBackgroundMusicPath() {
+        // Đảm bảo bạn có tệp này trong thư mục resources/sounds
+        return "resources/sounds/level1_music.wav";
+    }
+    @Override
+    public String getBallImagePath() {
+        // (Bạn phải tạo tệp ảnh này)
+        return "resources/sprites/ball_level_one.png";
+    }
 }

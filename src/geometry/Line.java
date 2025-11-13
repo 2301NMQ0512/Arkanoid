@@ -11,11 +11,11 @@ public class Line {
     /**
      * The Start.
      */
-    private Point start;
+    private final Point start;
     /**
      * The End.
      */
-    private Point end;
+    private final Point end;
     private static final double EPSILON = 1E-5;
 
     /**
@@ -53,32 +53,12 @@ public class Line {
     }
 
     /**
-     * Returns the middle point of the line.
-     *
-     * @return the point
-     */
-    public Point middle() {
-        double middleX = (start.getX() + end.getX()) / 2;
-        double middleY = (start.getY() + end.getY()) / 2;
-        return new Point(middleX, middleY);
-    }
-
-    /**
      * Returns the start point of the line.
      *
      * @return the point
      */
     public Point start() {
         return this.start;
-    }
-
-    /**
-     * Returns the end point of the line.
-     *
-     * @return the point
-     */
-    public Point end() {
-        return this.end;
     }
 
     /**
@@ -92,15 +72,7 @@ public class Line {
     }
 
 
-    /**
-     * Returns true if the lines intersect, false otherwise
-     * takes 2 lines, and checks whether their slopes are even or not by the coordinates of theirs
-     * starting and ending points. It also checks if they cross each other, continue each other or
-     * any other case that may indicate on having an intersection point or not.
-     *
-     * @param other line
-     * @return true of false - whether their is an intersection point with the other line or not.
-     */
+
     public boolean isIntersecting(Line other) {
         double x1 = this.start.getX();
         double y1 = this.start.getY();
@@ -145,20 +117,12 @@ public class Line {
             // Parallel lines
             return closeToZero(b12 - b34);
         }
-        // Non parallel non vertical lines intersect at x. Is x part of both segments?
+
         double x = -(b12 - b34) / (a12 - a34);
         return x >= min(x1, x2) && x <= Math.max(x1, x2) && x >= min(x3, x4) && x <= Math.max(x3, x4);
     }
 
-    /**
-     * Returns the intersection point if the lines intersect and null otherwise.
-     * takes 2 lines, and checks whether their slopes are even or not by the coordinates of theirs
-     * starting and ending points. It also checks if they cross each other, continue each other or
-     * any other case that may indicate on having an intersection point or not.
-     *
-     * @param other line
-     * @return the intersection's point coordinates or null.
-     */
+
     public Point intersectionWith(Line other) {
         if (!isIntersecting(other)) {
             return null;
@@ -213,22 +177,6 @@ public class Line {
     }
 
     /**
-     * return true is the lines are equal, false otherwise
-     * checks whether the starting and ending points of the lines are the same, which can indicate they are both
-     * equal lines.
-     *
-     * @param other line
-     * @return true of flase - whether the lines are equal or not
-     */
-    public boolean equals(Line other) {
-        if (this.start.equals(other.start) && this.end.equals(other.end)
-                || this.start.equals(other.end) && this.end.equals(other.start)) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * If a given line does not intersect with the rectangle, return null.
      * Otherwise, return the closest intersection point to the
      * start of the line.
@@ -265,17 +213,17 @@ public class Line {
         boolean flag = true;
         if (foundIntersection) {
 
-            for (int i = 0; i < intersectionPoints.length; i++) {
-                if (intersectionPoints[i] == null) {
+            for (Point intersectionPoint : intersectionPoints) {
+                if (intersectionPoint == null) {
                     continue;
                 }
                 if (flag) {
-                    minDistance = rect.getUpperLeft().distance(intersectionPoints[i]);
-                    pointClosestIntersectionToStartOfLine = intersectionPoints[i];
+                    minDistance = rect.getUpperLeft().distance(intersectionPoint);
+                    pointClosestIntersectionToStartOfLine = intersectionPoint;
                     flag = false;
                 } else {
-                    if (rect.getUpperLeft().distance(intersectionPoints[i]) < minDistance) {
-                        pointClosestIntersectionToStartOfLine = intersectionPoints[i];
+                    if (rect.getUpperLeft().distance(intersectionPoint) < minDistance) {
+                        pointClosestIntersectionToStartOfLine = intersectionPoint;
                     }
                 }
             }

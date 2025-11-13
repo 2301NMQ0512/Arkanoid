@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * The LevelInformation interface specifies the information required to fully describe a level.
  *
- * 
+ *
  */
 public interface LevelInformation {
     /**
@@ -72,4 +72,8 @@ public interface LevelInformation {
      */
 
     int numberOfBlocksToRemove();
+
+    String getBackgroundMusicPath();
+
+    String getBallImagePath();
 }

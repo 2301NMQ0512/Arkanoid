@@ -2,16 +2,15 @@ package ball;
 
 import geometry.Point;
 
-
 public class Velocity {
     /**
      * The Dy.
      */
-    private double theDy;
+    private final double theDy;
     /**
      * The Dx.
      */
-    private double theDx;
+    private final double theDx;
 
     /**
      * Instantiates a new ball.Velocity.
@@ -19,8 +18,6 @@ public class Velocity {
      * @param dx the dx
      * @param dy the dy
      */
-// ball.Velocity specifies the change in position on the `x` and the `y` axes.
-    // constructor
     public Velocity(double dx, double dy) {
         this.theDx = dx;
         this.theDy = dy;
@@ -46,9 +43,9 @@ public class Velocity {
             return new Velocity(dx, dy);
             //the movement is in the fourth quarter.
         } else if ((angle > 270) && (angle <= 360)) {
-            angle = angle - 270;
-            dx = -speed * Math.cos(Math.toRadians(angle));
-            dy = -speed * Math.sin(Math.toRadians(angle));
+            angle = 360 - angle;
+            dx = speed * Math.sin(Math.toRadians(angle));
+            dy = speed * Math.cos(Math.toRadians(angle));
             return new Velocity(dx, dy);
             //the movement is in the third quarter.
         } else if ((angle > 180) && (angle <= 270)) {
@@ -77,41 +74,18 @@ public class Velocity {
         return new Point(p.getX() + theDx, p.getY() + theDy);
     }
 
-    /**
-     * getDX.
-     * bring us the dx value of the velocity.
-     *
-     * @return the dx value of this velocity.
-     */
+
     public double getDx() {
         return this.theDx;
     }
 
-    /**
-     * Sets dx.
-     *
-     * @param dx the dx
-     */
-    public void setDx(double dx) {
-        this.theDx = dx;
-    }
-
-    /**
-     * getDY.
-     * bring us the dy value of the velocity.
-     *
-     * @return the dy value of the velocity.
-     */
     public double getDy() {
         return this.theDy;
     }
 
-    /**
-     * Sets dy.
-     *
-     * @param dy the dy
-     */
-    public void setDy(double dy) {
-        this.theDy = dy;
+
+    public double getSpeed() {
+        return Math.sqrt((this.theDx * this.theDx) + (this.theDy * this.theDy));
     }
+
 }

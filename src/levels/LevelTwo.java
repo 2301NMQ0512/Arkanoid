@@ -3,165 +3,211 @@ package levels;
 import ball.Velocity;
 import biuoop.DrawSurface;
 import collidable.Block;
+import collidable.PatrollingBlock; // <-- THÊM MỚI: Import gạch di chuyển
 import game.Sprite;
 import geometry.Rectangle;
 import geometry.Point;
 
-import java.awt.Color;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Level Two. Will have a different amount of blocks and balls than the other levels.
- * Also, the paddle's speed, width and the balls' velocity will be different as well from the
- * other levels.
- *
- * 
- */
+// (Các import ảnh)
+
+import javax.imageio.ImageIO;
+import java.util.Objects;
+
 
 public class LevelTwo implements LevelInformation {
 
-    /**
-     * the number of the created balls in this level.
-     *
-     * @return int the number of the balls
-     */
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 600;
+
+    // --- ASCII Art cho Cúp Vàng World Cup ---
+    private static final String[] PATTERN = {
+            "       Y     YGY      Y        ",
+            "    YYYYYYYYYYYYYYYYYYYYY      ",
+            "     YYYYYYYYYYYYYYYYYYY    ",
+            "      YYYYYYYYYYYYYYYYY   ",
+            "        YYHYYYYYYYHYY   ",
+            "         YYYYYYYYYYY    ",
+            "           YHYYYHY      ",
+            "            YYYYY        ",
+            "            YYYYY        ",
+            "            YYGYY        ",
+            "           GGGGGGG         ",
+            "            YYYYY         ",
+            "          YYGYYYGYY        ",
+            "          YYYYYYYYY        ",
+            "         YYYYYYYYYYY        ",
+            "        YYYYYYYYYYYYY       ",
+            "        YYYYYYYYYYYYY       ",
+            "       YYYYYYYYYYYYYYY"
+    };
+
+    private static final int BLOCK_SIZE = 20;
+    private static final int START_X = 215;
+    private static final int START_Y = 80;
+
+    @Override
+    public String levelName() {
+        return "Level Two: World Cup";
+    }
+
     @Override
     public int numberOfBalls() {
         return 2;
     }
 
-    /**
-     * creates a list of velocities.
-     * Add a velocity by angle and speed, by a given speed and a specific angle, so the balls
-     * will fly in an arc structure.
-     * The size of the list will be as the number of the balls.
-     *
-     * @return velocities list.
-     */
     @Override
     public List<Velocity> initialBallVelocities() {
-        Random rand = new Random();
         List<Velocity> velocities = new ArrayList<>();
-        for (int i = 0; i < numberOfBalls(); i++) {
-            velocities.add(Velocity.fromAngleAndSpeed((i * -6) + 30, 5));
-        }
+        velocities.add(Velocity.fromAngleAndSpeed(320, 5));
+        velocities.add(Velocity.fromAngleAndSpeed(40, 5));
         return velocities;
     }
 
-    /**
-     * the speed of the paddle, how fast can he move.
-     *
-     * @return int, the speed.
-     */
     @Override
     public int paddleSpeed() {
-        return 6;
+        return 13;
     }
 
-    /**
-     * sets the width of the paddle.
-     *
-     * @return int, the width
-     */
     @Override
     public int paddleWidth() {
-        return 150;
+        return 200;
     }
 
-    /**
-     * the name of the level.
-     *
-     * @return string
-     */
     @Override
-    public String levelName() {
-        return "Wide Easy";
+    public String getBallImagePath() {
+        return "resources/sprites/ball_level_two.png";
+    }
+
+    @Override
+    public String getBackgroundMusicPath() {
+        return "resources/sounds/level2_music.wav";
     }
 
     @Override
     public Sprite getBackground() {
-        return new Sprite() {
+        // (Logic tải GIF giữ nguyên)
+        List<BufferedImage> backgroundFrames = new ArrayList<>();
+        try {
+            System.out.println("Level 4: Bắt đầu tải các khung hình GIF...");
+            for (int i = 0; i <= 103; i++) { // (Giả sử bạn có 36 khung hình, 1-36)
+                String framePath = "resources/backgrounds/level_2_gif/frame (" + i + ").png";
+                BufferedImage originalFrame = ImageIO.read(Objects.requireNonNull(
+                        getClass().getClassLoader().getResourceAsStream(framePath)));
+                BufferedImage scaledFrame = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, originalFrame.getType());
+                Graphics2D g = scaledFrame.createGraphics();
+                g.drawImage(originalFrame, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, null);
+                g.dispose();
+                backgroundFrames.add(scaledFrame);
+            }
+            System.out.println("Level 2: Đã tải " + backgroundFrames.size() + " khung hình GIF.");
+        } catch (Exception e) {
+            System.err.println("Không thể tải GIF cho Level 2: " + e.getMessage());
+        }
 
-            /**
-             * draws the sprite to the screen.
-             *
-             * @param d the drawing surface
-             */
+        final List<BufferedImage> finalFrames = backgroundFrames;
+
+        // Trả về Sprite
+        return new Sprite() {
+            // (Chỉ giữ lại các biến cho GIF)
+            private int gifFrameCounter = 0;
+            private int currentGifFrame = 0;
+            private static final int GIF_ANIMATION_DELAY = 3;
+
             @Override
             public void drawOn(DrawSurface d) {
-                d.setColor(Color.orange);
-                d.drawLine(130, 150, 411, 300);
-                d.drawLine(140, 150, 511, 300);
-                d.drawLine(100, 150, 611, 300);
-                d.drawLine(100, 150, 311, 300);
-                d.drawLine(100, 150, 711, 300);
-                d.setColor(Color.getHSBColor(344, 174, 11));
-                d.fillCircle(120, 130, 70);
-                d.setColor(Color.orange);
-                d.fillCircle(120, 130, 60);
-                d.setColor(Color.yellow);
-                d.fillCircle(120, 130, 50);
+                if (!finalFrames.isEmpty()) {
+                    d.drawImage(0, 0, finalFrames.get(this.currentGifFrame));
+                } else {
+                    d.setColor(Color.BLACK);
+                    d.fillRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                }
             }
 
             /**
-             * notify the sprite that time has passed.
+             * THAY ĐỔI: Chỉ chứa logic GIF.
              */
             @Override
             public void timePassed() {
-//
+                // --- A. LOGIC ẢNH ĐỘNG NỀN ---
+                this.gifFrameCounter++;
+                if (this.gifFrameCounter >= GIF_ANIMATION_DELAY) {
+                    this.gifFrameCounter = 0;
+                    this.currentGifFrame++;
+                    if (this.currentGifFrame >= finalFrames.size()) {
+                        this.currentGifFrame = 0; // Quay vòng
+                    }
+                }
+
+
             }
         };
     }
 
     /**
-     * Creates 1 line of blocks with a different color.
-     * Adds each created block to a list of blocks and returns the list.
-     *
-     * @return blocks
+     * THAY ĐỔI: Tạo các khối gạch DI CHUYỂN (PatrollingBlock).
      */
     @Override
     public List<Block> blocks() {
         List<Block> blocks = new ArrayList<>();
-        Color blockColor = Color.red;
-        for (int i = 0; i < 15; i++) {
-            if (i == 2) {
-                blockColor = Color.yellow;
+        Random rand = new Random();
+
+
+
+        // --- THÊM MỚI: Phạm vi di chuyển ---
+        int moveRange = 200; // Di chuyển qua lại 100px
+        // ----------------------------------
+
+        for (int row = 0; row < PATTERN.length; row++) {
+            String line = PATTERN[row];
+            for (int col = 0; col < line.length(); col++) {
+
+                char blockType = line.charAt(col);
+                if (blockType == ' ') {
+                    continue;
+                }
+
+                double x = START_X + (col * BLOCK_SIZE);
+                double y = START_Y + (row * BLOCK_SIZE);
+                Point pos = new Point(x, y);
+                Rectangle rect = new Rectangle(pos, BLOCK_SIZE, BLOCK_SIZE);
+
+                int hitPoints = rand.nextInt(4) + 1;
+
+                Block b;
+
+                // --- THAY ĐỔI: Sử dụng PatrollingBlock ---
+                if (blockType == 'Y') {
+                    b = new PatrollingBlock(rect, Color.lightGray, hitPoints, moveRange);
+                } else if (blockType == 'G') {
+                    b = new PatrollingBlock(rect, Color.BLUE, hitPoints, moveRange);
+                } else {
+                    // Gạch dự phòng (nếu c ó ký tự lạ)
+                    b = new PatrollingBlock(rect, Color.YELLOW, hitPoints, moveRange);
+                }
+                // -----------------------------------------
+
+                blocks.add(b);
             }
-            if (i == 4) {
-                blockColor = Color.orange;
-            }
-            if (i == 6) {
-                blockColor = Color.green;
-            }
-            if (i == 9) {
-                blockColor = Color.blue;
-            }
-            if (i == 11) {
-                blockColor = Color.pink;
-            }
-            if (i == 13) {
-                blockColor = Color.cyan;
-            }
-            Rectangle rectangle = new Rectangle(new Point(52 * (i + 1) - 40,
-                    300), 51,
-                    30);
-            Block block = new Block(rectangle, blockColor);
-            blocks.add(block);
-            block.colorForStroke(Color.black);
         }
         return blocks;
     }
 
-    /**
-     * the amount of the blocks in the beginning of the level.
-     *
-     * @return int, the number of the blocks
-     */
     @Override
     public int numberOfBlocksToRemove() {
-        return blocks().size();
+        int count = 0;
+        for (String row : PATTERN) {
+            for (char c : row.toCharArray()) {
+                if (c != ' ') {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
-
 }

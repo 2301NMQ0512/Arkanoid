@@ -11,11 +11,9 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-/**
- * Màn hình tạm dừng có các nút điều khiển được căn giữa hoàn hảo.
- */
+
 public class PauseScreen implements Animation {
-    private KeyboardSensor keyboard;
+    private final KeyboardSensor keyboard;
     private MenuSelection selection;
     private boolean isAlreadyPressed;
 

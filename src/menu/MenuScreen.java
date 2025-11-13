@@ -9,56 +9,108 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 import javax.imageio.ImageIO;
-
-
+import java.util.ArrayList;
+import java.util.List;
+import java.awt.Graphics2D;
 
 public class MenuScreen implements Animation {
     private final KeyboardSensor keyboard;
     private final MouseSensor mouse;
     private MenuSelection selection;
-    private BufferedImage backgroundImage;
+
+
+    private final List<BufferedImage> backgroundFrames;
+    private int currentFrame;
+    private int frameDelayCounter;
+    private static final int ANIMATION_DELAY = 6;
+
+
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 600;
+
 
     private static final int BUTTON_WIDTH = 200;
     private static final int BUTTON_HEIGHT = 50;
     private static final int BUTTON_SPACING = 20;
-    private static final int CENTER_X = 800 / 2;
+    private static final int CENTER_X = SCREEN_WIDTH / 2;
     private static final int START_Y = 250;
+
 
     public MenuScreen(KeyboardSensor k, MouseSensor m) {
         this.keyboard = k;
         this.mouse = m;
         this.selection = MenuSelection.NONE;
+
+        this.backgroundFrames = new ArrayList<>();
+        this.currentFrame = 0;
+        this.frameDelayCounter = 0;
+
         try {
-            // Đường dẫn tài nguyên (resource path) chính xác
-            String imagePath = "resources/backgrounds/arcade_menu.jpg";
-            this.backgroundImage = ImageIO.read(Objects.requireNonNull(
-                    getClass().getClassLoader().getResourceAsStream(imagePath)));
+            int i = 1;
+            System.out.println("Menu: Bắt đầu tải và co giãn các khung hình GIF (việc này có thể mất một lúc)...");
+
+            while (true) {
+
+                String framePath = "resources/backgrounds/menu_gif/frame (" + i + ").png";
+                BufferedImage originalFrame = ImageIO.read(Objects.requireNonNull(
+                        getClass().getClassLoader().getResourceAsStream(framePath)));
+
+
+                BufferedImage scaledFrame = new BufferedImage(SCREEN_WIDTH, SCREEN_HEIGHT, originalFrame.getType());
+
+
+                Graphics2D g2d = scaledFrame.createGraphics();
+
+
+                g2d.drawImage(originalFrame, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, null);
+                g2d.dispose(); // Giải phóng bộ nhớ
+
+
+                this.backgroundFrames.add(scaledFrame);
+                i++;
+            }
         } catch (Exception e) {
-            System.err.println("Không thể tải ảnh nền cho menu: " + e.getMessage());
-            this.backgroundImage = null;
+            if (this.backgroundFrames.isEmpty()) {
+                System.err.println("Không thể tải BẤT KỲ khung hình GIF nào (định dạng 'frame (i).png').");
+            } else {
+                System.out.println("Menu: Đã tải và co giãn " + this.backgroundFrames.size() + " khung hình nền.");
+            }
         }
     }
 
     @Override
     public void doOneFrame(DrawSurface d) {
-        // 1. Vẽ nền
-        if (this.backgroundImage != null) {
-            d.drawImage(0, 0, this.backgroundImage);
+
+
+        d.setColor(Color.BLACK);
+        d.fillRectangle(0, 0, d.getWidth(), d.getHeight());
+
+        if (!this.backgroundFrames.isEmpty()) {
+
+            d.drawImage(0, 0, this.backgroundFrames.get(this.currentFrame));
+
+
+            this.frameDelayCounter++;
+            if (this.frameDelayCounter >= ANIMATION_DELAY) {
+                this.frameDelayCounter = 0;
+                this.currentFrame++;
+                if (this.currentFrame >= this.backgroundFrames.size()) {
+                    this.currentFrame = 0;
+                }
+            }
         } else {
-            d.setColor(new Color(20, 0, 40));
-            d.fillRectangle(0, 0, 800, 600);
+
             drawTitle(d);
         }
 
-        // --- 2. Lấy trạng thái chuột ---
+
         int mouseX = this.mouse.getX();
         int mouseY = this.mouse.getY();
         boolean mousePressed = this.mouse.isPressed(MouseSensor.LEFT_CLICK);
 
-        // --- 3. Xác định vùng nút & Kiểm tra Input ---
         int currentY = START_Y;
 
-        // --- Nút PLAY ---
+
         Rectangle playRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean playHover = isMouseInside(playRect, mouseX, mouseY);
         drawButton(d, "PLAY", playRect, Color.GREEN.darker(), playHover || keyboard.isPressed("enter"));
@@ -67,25 +119,16 @@ public class MenuScreen implements Animation {
         }
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
-        // --- Nút HIGH SCORE ---
-        Rectangle hsRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean hsHover = isMouseInside(hsRect, mouseX, mouseY);
-        drawButton(d, "HIGH SCORE", hsRect, Color.CYAN.darker(), hsHover || keyboard.isPressed("h"));
-        if (keyboard.isPressed("h") || (hsHover && mousePressed)) {
-            this.selection = MenuSelection.HIGH_SCORE;
+
+        Rectangle rankRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
+        boolean rankHover = isMouseInside(rankRect, mouseX, mouseY);
+        drawButton(d, "RANKING", rankRect, Color.CYAN.darker(), rankHover || keyboard.isPressed("k"));
+        if (keyboard.isPressed("k") || (rankHover && mousePressed)) {
+            this.selection = MenuSelection.RANKING;
         }
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
-        // --- Nút RESTART ---
-        Rectangle restartRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean restartHover = isMouseInside(restartRect, mouseX, mouseY);
-        drawButton(d, "RESTART", restartRect, Color.BLUE.darker(), restartHover || keyboard.isPressed("r"));
-        if (keyboard.isPressed("r") || (restartHover && mousePressed)) {
-            this.selection = MenuSelection.RESTART;
-        }
-        currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
-        // --- Nút EXIT ---
         Rectangle exitRect = new Rectangle(new Point(CENTER_X - ((double) BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
         boolean exitHover = isMouseInside(exitRect, mouseX, mouseY);
         drawButton(d, "EXIT", exitRect, Color.RED.darker(), exitHover || keyboard.isPressed("escape"));
@@ -93,6 +136,8 @@ public class MenuScreen implements Animation {
             this.selection = MenuSelection.EXIT;
         }
     }
+
+
 
     private boolean isMouseInside(Rectangle rect, int x, int y) {
         return (x >= rect.getUpperLeft().getX() &&
@@ -108,9 +153,6 @@ public class MenuScreen implements Animation {
         d.drawText(CENTER_X - 148, 102, "ARCADE", 80);
     }
 
-    /**
-     * Hàm drawButton (Đã sửa lỗi căn giữa).
-     */
     private void drawButton(DrawSurface d, String text, Rectangle buttonRect, Color baseColor, boolean isActive) {
         Color fillColor = baseColor;
         Color outlineColor = baseColor.brighter();
@@ -132,11 +174,8 @@ public class MenuScreen implements Animation {
 
         d.setColor(Color.WHITE);
 
-        // --- SỬA LỖI CĂN GIỮA ---
-        // Tăng hệ số nhân từ 11.5 lên 12.5 để ước lượng chính xác hơn
         int textWidth = (int) (text.length() * 14.5);
         d.drawText(x + (w / 2) - (textWidth / 2), y + (h / 2) + 8, text, 24);
-        // -------------------------
     }
 
     @Override

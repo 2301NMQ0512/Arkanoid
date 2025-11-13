@@ -8,9 +8,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-// Implement Sprite to hook into the game loop
+
 public class PowerUpManager implements Sprite {
-    private final List<PowerUp> list = new ArrayList<PowerUp>();
+    private final List<PowerUp> list = new ArrayList<>();
     private final Random rand = new Random();
     private final int panelHeight;
 
@@ -35,12 +35,10 @@ public class PowerUpManager implements Sprite {
                 continue;
             }
             p.update();
-            // Remove if it falls off-screen
             if (p.getY() > panelHeight + 50) it.remove();
         }
     }
 
-    // --- Sprite Interface Methods ---
 
     @Override
     public void timePassed() {
@@ -54,7 +52,6 @@ public class PowerUpManager implements Sprite {
         }
     }
 
-    // Helper to add to the game
     public void addToGame(GameLevel g) {
         g.addSprite(this);
     }

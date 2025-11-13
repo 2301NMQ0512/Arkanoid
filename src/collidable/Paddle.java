@@ -12,252 +12,208 @@ import game.Sprite;
 import java.awt.Color;
 
 public class Paddle implements Sprite, Collidable {
-    private int thespeed; // Tốt! Đây không phải là static
-    private Color color;
-    private Rectangle Paddle; // Lưu ý: Tên biến nên bắt đầu bằng chữ thường, ví dụ: 'paddle'
-    private static double guiWidthLeft = 10;
-    private static double guiWidthRight = 780;
-    private biuoop.KeyboardSensor keyboard;
-    private double[] regionBorders = new double[4];
+    private int thespeed;
+    private final Color color;
+    private Rectangle Paddle;
+    private static final double guiWidthLeft = 10;
 
-    // Lưu trạng thái gốc
+
+    private static final double guiWidthRight = 790; // <-- Đã sửa từ 780
+
+
+    private final biuoop.KeyboardSensor keyboard;
+    private final double[] regionBorders = new double[4];
+
+
     private final int originalSpeed;
     private final double originalWidth;
-
-    // Bộ đếm thời gian (giá trị 0 có nghĩa là không hoạt động)
     private long expandTimer;
     private long speedTimer;
-
-    // Thời lượng power-up (ví dụ: 7000 mili giây = 7 giây)
     private static final long POWERUP_DURATION = 3000;
+
     public Paddle(Rectangle Paddle, Color color, biuoop.KeyboardSensor keyboard, int thespeed) {
         this.color = color;
         this.Paddle = Paddle;
         this.keyboard = keyboard;
-        this.thespeed = thespeed; // <-- SỬA LỖI QUAN TRỌNG Ở ĐÂY
-
+        this.thespeed = thespeed;
         this.originalSpeed = thespeed;
         this.originalWidth = Paddle.getWidth();
-
-        // Khởi tạo bộ đếm thời gian là không hoạt động
         this.expandTimer = 0;
         this.speedTimer = 0;
+        this.updateRegionBorders();
     }
 
     public void moveLeft() {
-        double newX = this.Paddle.getUpperLeft().getX() - thespeed;
-        if (newX <= guiWidthLeft) {
-            newX = guiWidthLeft;
+        if (this.Paddle.getUpperLeft().getX() > guiWidthLeft) {
+            double newX = this.Paddle.getUpperLeft().getX() - this.thespeed;
+            if (newX < guiWidthLeft) {
+                newX = guiWidthLeft;
+            }
+            this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
+                    this.Paddle.getWidth(), this.Paddle.getHeight());
         }
-        this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
-                this.Paddle.getWidth(), this.Paddle.getHeight());
     }
 
     public void moveRight() {
-        double newX = this.Paddle.getUpperLeft().getX() + thespeed;
-        if (newX + this.Paddle.getWidth() >= guiWidthRight) {
-            newX = guiWidthRight - this.Paddle.getWidth();
+        // (Logic di chuyển sang phải giờ sẽ hoạt động chính xác đến 790)
+        if (this.Paddle.getUpperLeft().getX() + this.Paddle.getWidth() < guiWidthRight) {
+            double newX = this.Paddle.getUpperLeft().getX() + this.thespeed;
+            if (newX + this.Paddle.getWidth() > guiWidthRight) {
+                newX = guiWidthRight - this.Paddle.getWidth();
+            }
+            this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
+                    this.Paddle.getWidth(), this.Paddle.getHeight());
         }
-        this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
-                this.Paddle.getWidth(), this.Paddle.getHeight());
     }
 
-    /**
-     * draws the Paddle.
-     *
-     * @param d the drawing surface
-     */
-    public void drawOn(DrawSurface d) {
-        d.setColor(color);
-        d.drawRectangle((int) this.Paddle.getUpperLeft().getX(),
-                (int) this.Paddle.getUpperLeft().getY(),
-                (int) this.Paddle.getWidth(), (int) this.Paddle.getHeight());
-        d.fillRectangle((int) Paddle.getUpperLeft().getX(),
-                (int) this.Paddle.getUpperLeft().getY(),
-                (int) this.Paddle.getWidth(), (int) this.Paddle.getHeight());
-        d.setColor(Color.black);
-        d.drawRectangle((int) this.Paddle.getUpperLeft().getX(),
-                (int) this.Paddle.getUpperLeft().getY(),
-                (int) this.Paddle.getWidth(), (int) this.Paddle.getHeight());
+    private void updateRegionBorders() {
+        double x = this.Paddle.getUpperLeft().getX();
+        double width = this.Paddle.getWidth();
+        this.regionBorders[0] = x + (width / 5);
+        this.regionBorders[1] = x + (width / 5) * 2;
+        this.regionBorders[2] = x + (width / 5) * 3;
+        this.regionBorders[3] = x + (width / 5) * 4;
     }
+
 
     public void timePassed() {
-        if (this.keyboard.isPressed(KeyboardSensor.LEFT_KEY)) {
-            this.moveLeft();
+        this.updateRegionBorders();
+        checkTimers();
+        if (keyboard.isPressed(KeyboardSensor.LEFT_KEY)) {
+            moveLeft();
         }
-        if (this.keyboard.isPressed(KeyboardSensor.RIGHT_KEY)) {
-            this.moveRight();
+        if (keyboard.isPressed(KeyboardSensor.RIGHT_KEY)) {
+            moveRight();
         }
-        checkTimers(); // Kiểm tra xem power-up có hết hạn không
-
     }
 
     public Rectangle getCollisionRectangle() {
         return this.Paddle;
     }
 
-    public int checkRegion(Point collisionPoint) {
-        double PaddleStartingX = Paddle.getUpperLeft().getX();
-        // because we have 5 regions
-        double collisionPointX = collisionPoint.getX();
-        for (int i = 0; i < 4; i++) {
-            regionBorders[i] = (Paddle.getWidth() / 4) * i + 1;
-        }
-        if (collisionPointX >= PaddleStartingX && collisionPointX <= PaddleStartingX + regionBorders[0]) {
-            return 1; //hit region 1
-        }
-        if (collisionPointX >= PaddleStartingX + regionBorders[0]
-                && collisionPointX <= PaddleStartingX + regionBorders[1]) {
-            return 2;
-        }
-        if (collisionPointX >= PaddleStartingX + regionBorders[1]
-                && collisionPointX <= PaddleStartingX + regionBorders[2]) {
-            return 3;
-        }
-        if (collisionPointX >= PaddleStartingX + regionBorders[2]
-                && collisionPointX <= PaddleStartingX + regionBorders[3]) {
-            return 4;
-        }
-        if (collisionPointX >= PaddleStartingX + regionBorders[3]
-                && collisionPointX <= PaddleStartingX + Paddle.getWidth()) {
-            return 5;
-        }
-        return 0;
-    }
-
-    public void changeVelocity(double speed, Velocity[] velo,
-                               Velocity currVel) {
-        double dx = currVel.getDx();
-        double dy = currVel.getDy();
-        velo[1] = Velocity.fromAngleAndSpeed(-60, speed);
-        velo[2] = Velocity.fromAngleAndSpeed(-30, speed);
-        velo[3] = new Velocity(dx, -dy);
-        velo[4] = Velocity.fromAngleAndSpeed(30, speed);
-        velo[5] = Velocity.fromAngleAndSpeed(60, speed);
-        velo[0] = new Velocity(dx, dy);
-    }
-
-    public Velocity angleChange(Point collisionPoint,
-                                int region, Velocity currVel) {
-        Velocity[] velo = new Velocity[6];
-        // Bạn đã sửa lỗi trong Ball.java, Velocity của bạn dùng dx/dy. Tốt!
-        double speed = Math.sqrt((currVel.getDx() * currVel.getDx())
-                + (currVel.getDy() * currVel.getDy()));
-        changeVelocity((int) speed, velo, currVel);
-        Velocity v = velo[region];
-        return v;
-    }
-
     public Velocity hit(Ball hitter, Point collisionPoint, Velocity currentVelocity) {
-        int region = this.checkRegion(collisionPoint);
-        return angleChange(collisionPoint, region, currentVelocity);
+        double colX = collisionPoint.getX();
+        double speed = currentVelocity.getSpeed();
+        if (colX < this.regionBorders[0]) {
+            return Velocity.fromAngleAndSpeed(-60, speed);
+        } else if (colX < this.regionBorders[1]) {
+            return Velocity.fromAngleAndSpeed(-30, speed);
+        } else if (colX < this.regionBorders[2]) {
+            return new Velocity(currentVelocity.getDx(), -currentVelocity.getDy());
+        } else if (colX < this.regionBorders[3]) {
+            return Velocity.fromAngleAndSpeed(30, speed);
+        } else {
+            return Velocity.fromAngleAndSpeed(60, speed);
+        }
     }
 
     public void addToGame(GameLevel g) {
-        g.addSprite(this);
         g.addCollidable(this);
+        g.addSprite(this);
     }
 
-    /**
-     * Increases the width of the Paddle.
-     * Re-centers the Paddle to avoid shifting.
-     */
-    /**
-     * Tăng chiều rộng của Paddle VÀ đặt bộ đếm thời gian hết hạn.
-     */
-    public void expand() {
-        // --- CẬP NHẬT CHÍNH ---
-        // Đặt (hoặc đặt lại) bộ đếm thời gian hết hạn thành 7 giây kể từ bây giờ
-        this.expandTimer = System.currentTimeMillis() + POWERUP_DURATION;
 
-        // Logic cũ của bạn để ngăn mở rộng vô hạn
+    @Override
+    public void drawOn(DrawSurface d) {
+        double totalX = this.Paddle.getUpperLeft().getX();
+        double totalY = this.Paddle.getUpperLeft().getY();
+        double totalWidth = this.Paddle.getWidth();
+        double totalHeight = this.Paddle.getHeight();
+
+        Color sideColor = Color.GRAY;
+        double sideWidth = 20;
+
+        if (sideWidth * 2 > totalWidth) {
+            sideWidth = totalWidth / 3;
+        }
+
+        double centerWidth = totalWidth - (2 * sideWidth);
+
+        Rectangle leftRect = new Rectangle(new Point(totalX, totalY), sideWidth, totalHeight);
+        Rectangle centerRect = new Rectangle(new Point(totalX + sideWidth, totalY), centerWidth, totalHeight);
+        Rectangle rightRect = new Rectangle(new Point(totalX + sideWidth + centerWidth, totalY), sideWidth, totalHeight);
+
+        draw3DBlock(d, leftRect, sideColor);
+        draw3DBlock(d, centerRect, this.color);
+        draw3DBlock(d, rightRect, sideColor);
+    }
+
+
+    private void draw3DBlock(DrawSurface d, Rectangle rect, Color mainColor) {
+        int x = (int) rect.getUpperLeft().getX();
+        int y = (int) rect.getUpperLeft().getY();
+        int width = (int) rect.getWidth();
+        int height = (int) rect.getHeight();
+        Color highlightColor = mainColor.brighter();
+        Color shadowColor = mainColor.darker().darker();
+
+        d.setColor(mainColor);
+        d.fillRectangle(x, y, width, height);
+        d.setColor(highlightColor);
+        d.fillRectangle(x, y, width, 2);
+        d.fillRectangle(x, y, 2, height);
+        d.setColor(shadowColor);
+        d.fillRectangle(x, y + height - 2, width, 2);
+        d.fillRectangle(x + width - 2, y, 2, height);
+    }
+
+
+    public void expandPaddle() {
+        resetSize();
         double currentWidth = this.Paddle.getWidth();
-        double maxWidth = 300; // Giới hạn chiều rộng tối đa
-
-        // Nếu đã ở mức tối đa, chúng ta vẫn đặt lại bộ đếm thời gian, nhưng không cần làm gì thêm
-        if (currentWidth >= maxWidth) {
-            return;
-        }
-
-        double newWidth = currentWidth * 1.5; // Rộng hơn 50%
-        if (newWidth > maxWidth) {
-            newWidth = maxWidth;
-        }
-
-        // Tính toán X mới để giữ paddle ở giữa
+        double newWidth = currentWidth * 1.5;
         double currentX = this.Paddle.getUpperLeft().getX();
         double newX = currentX - (newWidth - currentWidth) / 2;
 
-        // Ngăn không cho mở rộng ra ngoài màn hình
         if (newX < guiWidthLeft) {
-            newX = guiWidthLeft + 1;
+            newX = guiWidthLeft;
         }
         if (newX + newWidth > guiWidthRight) {
-            newX = guiWidthRight - newWidth - 1;
+            newX = guiWidthRight - newWidth;
         }
 
         this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
                 newWidth, this.Paddle.getHeight());
+
+        this.expandTimer = System.currentTimeMillis() + POWERUP_DURATION;
     }
 
-    /**
-     * Tăng tốc độ di chuyển của Paddle VÀ đặt bộ đếm thời gian hết hạn.
-     */
+
     public void increaseSpeed() {
-        // --- CẬP NHẬT CHÍNH ---
-        // Đặt (hoặc đặt lại) bộ đếm thời gian hết hạn thành 7 giây kể từ bây giờ
+        resetSpeed();
+        this.thespeed = this.originalSpeed * 2;
         this.speedTimer = System.currentTimeMillis() + POWERUP_DURATION;
-
-        // Logic cũ của bạn để ngăn tăng tốc độ vô hạn
-        if (thespeed < 16) {
-            thespeed += 10;
-        }
     }
 
-    // --- THÊM 3 PHƯƠNG THỨC MỚI SAU ĐÂY VÀO CUỐI TỆP ---
 
-    /**
-     * Được gọi bởi timePassed(), kiểm tra xem có bộ đếm thời gian nào đã hết hạn không.
-     */
     private void checkTimers() {
         long currentTime = System.currentTimeMillis();
 
-        // Kiểm tra bộ đếm thời gian mở rộng
         if (this.expandTimer > 0 && currentTime > this.expandTimer) {
             resetSize();
-            this.expandTimer = 0; // Hủy kích hoạt bộ đếm thời gian
+            this.expandTimer = 0;
         }
 
-        // Kiểm tra bộ đếm thời gian tốc độ
         if (this.speedTimer > 0 && currentTime > this.speedTimer) {
             resetSpeed();
-            this.speedTimer = 0; // Hủy kích hoạt bộ đếm thời gian
+            this.speedTimer = 0;
         }
     }
 
-    /**
-     * Hoàn tác hiệu ứng mở rộng, trả paddle về chiều rộng ban đầu.
-     */
+
     private void resetSize() {
         double currentWidth = this.Paddle.getWidth();
-        // Chỉ đặt lại nếu nó chưa có kích thước gốc
         if (currentWidth == this.originalWidth) {
             return;
         }
-
         double currentX = this.Paddle.getUpperLeft().getX();
-        // Căn giữa lại paddle khi nó co lại
         double newX = currentX + (currentWidth - this.originalWidth) / 2;
-
         this.Paddle = new Rectangle(new Point(newX, this.Paddle.getUpperLeft().getY()),
                 this.originalWidth, this.Paddle.getHeight());
     }
 
-    /**
-     * Hoàn tác hiệu ứng tốc độ, trả paddle về tốc độ ban đầu.
-     */
+
     private void resetSpeed() {
         this.thespeed = this.originalSpeed;
     }
 }
-// <-- Tôi đã xóa bình luận thừa ở cuối tệp của bạn -->

@@ -1,9 +1,9 @@
-package menu;
+package menu; // (Hoặc package của bạn)
 
 public enum MenuSelection {
+    NONE,
     PLAY,
-    HIGH_SCORE, // <-- THÊM DÒNG NÀY
-    RESTART,
     EXIT,
-    NONE
+    RESTART,
+    RANKING
 }

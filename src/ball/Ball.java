@@ -9,212 +9,220 @@ import game.GameEnvironment;
 import game.Sprite;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import javax.imageio.ImageIO;
 
 
 public class Ball implements Sprite {
     private final int r;
-    /**
-     * The center point of the ball.
-     */
     private Point center;
-    /**
-     * The Color of the ball.
-     */
-    private java.awt.Color color;
     private Velocity velocity;
-    private GameEnvironment gameEnvironment;
+    private final GameEnvironment gameEnvironment;
+    private final String imagePath;
 
-    /**
-     * Instantiates a new ball.Ball.
-     * A constructor
-     *
-     * @param center          the center point of the ball
-     * @param r               the radius
-     * @param color           the color
-     * @param gameEnvironment the game environment that the ball joins to
-     * @param v               the velocity of the ball
-     */
-    public Ball(Point center, int r, java.awt.Color color, GameEnvironment gameEnvironment, Velocity v) {
+
+    private final List<Image> scaledBallFrames;
+
+
+    private int currentFrame;
+    private int frameDelayCounter;
+
+    private static final int ANIMATION_DELAY = 2;
+
+
+    public Ball(Point center, int r, GameEnvironment gameEnvironment, Velocity v, String imagePath) {
         this.center = center;
-        this.color = color;
         this.r = r;
-        this.setVelocity(v.getDx(), v.getDy());
+        this.velocity = v;
         this.gameEnvironment = gameEnvironment;
-    }
+        this.imagePath = imagePath;
 
-    /**
-     * Adds the ball to game.
-     *
-     * @param g the game
-     */
-    public void addToGame(GameLevel g) {
-        g.addSprite(this);
-    }
+        // Khởi tạo các biến GIF
+        this.scaledBallFrames = new ArrayList<>();
+        this.currentFrame = 0;
+        this.frameDelayCounter = 0;
 
-    /**
-     * Gets the X coordinate of the center point of the ball.
-     *
-     * @return the x
-     */
-    public int getX() {
-        return (int) this.center.getX();
+
+        this.loadAndScaleImages();
     }
 
 
+    private void loadAndScaleImages() {
+        String path = this.imagePath;
+        if (path == null) {
+            // Dùng ảnh mặc định nếu level không cung cấp
+            path = "resources/sprites/ball_image.png";
+        }
+
+
+        if (path.endsWith("/")) {
+            try {
+                int i = 1;
+                while (true) {
+                    // Thử tải "resources/sprites/level_four_ball_gif/frame (1).png"
+                    String framePath = path + "frame (" + i + ").png";
+                    InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream(framePath);
+                    BufferedImage frame = ImageIO.read(Objects.requireNonNull(is));
+
+                    // Co giãn và thêm vào danh sách
+                    this.scaledBallFrames.add(scaleImage(frame));
+                    i++;
+                }
+            } catch (Exception e) {
+                // Mong đợi lỗi này khi hết khung hình
+                if (this.scaledBallFrames.isEmpty()) {
+                    System.err.println("Không tải được GIF nào từ thư mục: " + path);
+                }
+            }
+        }
+
+
+        if (this.scaledBallFrames.isEmpty()) {
+            try {
+                InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream(path);
+                BufferedImage img = ImageIO.read(Objects.requireNonNull(is));
+                this.scaledBallFrames.add(scaleImage(img)); // Thêm 1 ảnh
+            } catch (Exception e) {
+                System.err.println("Không thể tải ảnh cho bóng tại: " + path);
+            }
+        }
+    }
+
     /**
-     * Removes the ball from the game..
-     *
-     * @param game the game
+     * THÊM MỚI: Phương thức trợ giúp để co giãn ảnh.
      */
+    private Image scaleImage(BufferedImage originalImage) {
+        int diameter = this.r * 2; // Kích thước của bóng
+        BufferedImage scaledImg = new BufferedImage(diameter, diameter, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = scaledImg.createGraphics();
+        g.drawImage(originalImage, 0, 0, diameter, diameter, null);
+        g.dispose();
+        return scaledImg;
+    }
+
+
+    // (Getters/Setters giữ nguyên)
+    public int getX() { return (int) this.center.getX(); }
+    public int getY() { return (int) this.center.getY(); }
+    public int getSize() { return this.r; }
+    public void setVelocity(Velocity v) { this.velocity = v; }
+
+    public Velocity getVelocity() { return this.velocity; }
+
     public void removeFromGame(GameLevel game) {
         game.removeSprite(this);
+        game.removeBallFromList(this);
     }
 
-    /**
-     * Gets y coordinate of the center point of the ball.
-     *
-     * @return the y
-     */
-    public int getY() {
-        return (int) this.center.getY();
-    }
 
-    /**
-     * Gets size of the ball, which means the radius of it.
-     *
-     * @return the size
-     */
-    public int getSize() {
-        return this.r; //gets the size of the radius
-    }
-
-    /**
-     * Gets the color of the ball.
-     *
-     * @return the color
-     */
-    public java.awt.Color getColor() {
-        return this.color;
-    }
-
-    /**
-     * draws the ball on the given surface.
-     *
-     * @param surface the drawing surface
-     */
+    @Override
     public void drawOn(DrawSurface surface) {
-        surface.setColor(getColor());
-        surface.fillCircle(getX(), getY(), getSize());
-        surface.setColor(Color.black);
-        surface.drawCircle(getX(), getY(), getSize());
+        if (!this.scaledBallFrames.isEmpty()) {
+            // 1. Lấy khung hình GIF hiện tại
+            Image currentImage = this.scaledBallFrames.get(this.currentFrame);
+
+            // 2. Tính toán vị trí góc trên-trái (top-left) để vẽ
+            int drawX = getX() - this.r;
+            int drawY = getY() - this.r;
+
+            // 3. Vẽ ảnh
+            surface.drawImage(drawX, drawY, currentImage);
+
+        } else {
+            // 4. Dự phòng: Nếu không tải được ảnh
+            draw3DFallback(surface);
+        }
     }
 
+
+    private void draw3DFallback(DrawSurface surface) {
+        int x = getX();
+        int y = getY();
+        int r = getSize();
+        Color highlightColor = Color.RED.brighter();
+        Color shadowColor = Color.RED.darker().darker();
+        int offset = 1;
+
+        surface.setColor(shadowColor);
+        surface.fillCircle(x + offset, y + offset, r);
+        surface.setColor(highlightColor);
+        surface.fillCircle(x - offset, y - offset, r);
+        surface.setColor(Color.RED);
+        surface.fillCircle(x, y, r);
+    }
+
+
+
     /**
-     * moves the ball.
+     * THAY ĐỔI: Chia nhỏ chuyển động để sửa lỗi xuyên gạch (Tunneling).
      */
+    @Override
     public void timePassed() {
-        moveOneStep();
+
+        if (this.scaledBallFrames.size() > 1) {
+            this.frameDelayCounter++;
+            if (this.frameDelayCounter >= ANIMATION_DELAY) {
+                this.frameDelayCounter = 0;
+                this.currentFrame++;
+                if (this.currentFrame >= this.scaledBallFrames.size()) {
+                    this.currentFrame = 0;
+                }
+            }
+        }
+
+        int steps = 12;
+
+
+        double smallDx = this.velocity.getDx() / steps;
+        double smallDy = this.velocity.getDy() / steps;
+
+
+        this.velocity = new Velocity(smallDx, smallDy);
+
+
+        for (int i = 0; i < steps; i++) {
+            moveOneStep();
+        }
+
+
+        this.velocity = new Velocity(this.velocity.getDx() * steps, this.velocity.getDy() * steps);
     }
 
-    /**
-     * Sets velocity of the ball by a given velocity.
-     *
-     * @param v the velocity
-     */
-    public void setVelocity(Velocity v) {
-        this.velocity = v;
-    }
 
-    /**
-     * Sets velocity of the ball by a given Dx and Dy values.
-     *
-     * @param dx the dx
-     * @param dy the dy
-     */
-    public void setVelocity(double dx, double dy) {
-        this.velocity = new Velocity(dx, dy);
-    }
-
-    /**
-     * Gets velocity of the ball.
-     *
-     * @return the velocity
-     */
-    public Velocity getVelocity() {
-        return this.velocity;
-    }
-
-    /**
-     * moves the ball to "almost" the given hit point, but just slightly before it.
-     *
-     * @param centerPoint the center point of the ball
-     * @return the new point which is slightly before the given hit point.
-     */
-    public Point moveNear(Point centerPoint) {
-        double xCenter = center.getY();
-        double yCenter = center.getY();
+    public Point moveNear(Point collisionPoint) {
+        double xCenter = collisionPoint.getX();
+        double yCenter = collisionPoint.getY();
         if (this.getVelocity().getDx() > 0) {
-            xCenter = center.getX() - 1;
+            xCenter = collisionPoint.getX() - 1;
         }
         if (this.getVelocity().getDx() < 0) {
-            xCenter = center.getX() + 1;
+            xCenter = collisionPoint.getX() + 1;
         }
         if (this.getVelocity().getDy() > 0) {
-            yCenter = center.getY() - 1;
+            yCenter = collisionPoint.getY() - 1;
         }
         if (this.getVelocity().getDy() < 0) {
-            yCenter = center.getY() + 1;
+            yCenter = collisionPoint.getY() + 1;
         }
         return new Point(xCenter, yCenter);
     }
-
-
     public void moveOneStep() {
-        Velocity currentVelocity = this.getVelocity();
-//        System.out.println("(" + this.getX() + "," + this.getY() + ") dx: " + this.velocity.getDx()
-//                + " dy: " + this.velocity.getDy());
-        double x = this.center.getX();
-        double y = this.center.getY();
-        Line trajectory = new Line(new Point(x, y),
-                new Point(x + currentVelocity.getDx(),
-                        y + currentVelocity.getDy()));
-        // get the closest collision point between the line and the rectangle
+        Point nextPosition = this.getVelocity().applyToPoint(this.center);
+        Line trajectory = new Line(this.center, nextPosition);
         CollisionInfo collisionInfo = this.gameEnvironment.getClosestCollision(trajectory);
-
         if (collisionInfo != null) {
-            // there's a collision
-            this.center = moveNear(this.center);
-            currentVelocity = collisionInfo.collisionObject().
-                    hit(this, collisionInfo.collisionPoint(), currentVelocity);
-            this.velocity = currentVelocity;
+            this.center = moveNear(collisionInfo.collisionPoint());
+            Velocity newVelocity = collisionInfo.collisionObject().
+                    hit(this, collisionInfo.collisionPoint(), this.velocity);
+            this.setVelocity(newVelocity);
+        } else {
+            this.center = nextPosition;
         }
-        this.center = this.velocity.applyToPoint(this.center);
-    }
-
-    /**
-     * Increases the speed of the ball, maintaining its direction.
-     */
-    // Thêm phương thức này vào tệp Ball.java của bạn
-
-    /**
-     * Tăng tốc độ của bóng bằng cách nhân dx và dy với 1.2.
-     */
-    public void increaseSpeed() {
-        // Lấy vận tốc hiện tại
-        Velocity v = this.getVelocity();
-
-        // Tính toán dx và dy mới
-        double newDx = v.getDx() * 1.5;
-        double newDy = v.getDy() * 1.5;
-
-        // Giới hạn tốc độ tối đa (tùy chọn)
-        // double newSpeed = Math.sqrt(newDx * newDx + newDy * newDy);
-        // if (newSpeed > 10) {
-        //     newDx = v.getDx() * (10 / v.getSpeed()); // Cần tính toán lại getSpeed()
-        //     newDy = v.getDy() * (10 / v.getSpeed());
-        // }
-
-        // Tạo vận tốc mới và đặt nó
-        this.setVelocity(new Velocity(newDx, newDy));
     }
 }

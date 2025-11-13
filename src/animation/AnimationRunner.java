@@ -6,9 +6,9 @@ import biuoop.Sleeper;
 
 
 public class AnimationRunner {
-    private GUI gui;
-    private int framesPerSecond;
-    private Sleeper sleeper;
+    private final GUI gui;
+    private final int framesPerSecond;
+    private final Sleeper sleeper;
 
 
     public AnimationRunner(GUI gui) {
