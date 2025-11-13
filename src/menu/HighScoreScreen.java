@@ -1,54 +1,73 @@
-package menu; // Hoặc package animation của bạn
+package menu;
 
 import animation.Animation;
 import biuoop.DrawSurface;
 import java.awt.Color;
-// Bạn sẽ cần một lớp để quản lý tệp điểm cao, ví dụ: 'ScorePersistence' hoặc 'HighScoreManager'
-// import game.ScorePersistence;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 
+/**
+ * Màn hình hiển thị điểm cao – tất cả được căn giữa hoàn hảo.
+ */
 public class HighScoreScreen implements Animation {
     private int highScore;
 
     public HighScoreScreen() {
-        // Tải điểm cao khi màn hình được tạo
-        // (Giả sử bạn có một lớp ScorePersistence như trong GameFlow của bạn)
-        // ScorePersistence sp = new ScorePersistence();
-        // try {
-        //     this.highScore = sp.readFromFile();
-        // } catch (Exception e) {
-        //     this.highScore = 0;
-        // }
-
-        // Tạm thời, nếu bạn chưa có, hãy dùng giá trị giả:
-        this.highScore = 0; // <-- THAY THẾ BẰNG LOGIC TẢI ĐIỂM CỦA BẠN
+        this.highScore = 0; // Tạm thời, thay bằng logic đọc điểm cao của bạn
     }
 
-    // Nếu GameFlow của bạn truyền điểm cao vào
     public HighScoreScreen(int highScore) {
         this.highScore = highScore;
     }
 
     @Override
     public void doOneFrame(DrawSurface d) {
-        d.setColor(new Color(20, 0, 40)); // Nền tím sẫm
-        d.fillRectangle(0, 0, 800, 600);
+        int screenWidth = d.getWidth();
+        int screenHeight = d.getHeight();
 
+        // --- Background ---
+        d.setColor(new Color(20, 0, 40)); // Deep purple
+        d.fillRectangle(0, 0, screenWidth, screenHeight);
+
+        // --- Title ---
+        String title = "HIGH SCORE";
+        int titleFontSize = 60;
+        int titleWidth = getTextWidth(title, titleFontSize);
         d.setColor(new Color(0, 255, 255)); // Cyan
-        d.drawText(800 / 2 - 220, 600 / 2 - 100, "HIGH SCORE", 60);
+        d.drawText((screenWidth / 2) - (titleWidth / 2), screenHeight / 3, title, titleFontSize);
 
-        d.setColor(Color.WHITE);
+        // --- Score ---
         String scoreStr = String.valueOf(this.highScore);
-        int approximateWidth = scoreStr.length() * 45;
-        d.drawText(800 / 2 - (approximateWidth / 2), 600 / 2 + 50, scoreStr, 100);
+        int scoreFontSize = 100;
+        int scoreWidth = getTextWidth(scoreStr, scoreFontSize);
+        d.setColor(Color.WHITE);
+        d.drawText((screenWidth / 2) - (scoreWidth / 2), (screenHeight / 2) + 50, scoreStr, scoreFontSize);
 
+        // --- Footer / Hint ---
+        String footer = "Press SPACE to return";
+        int footerFontSize = 30;
+        int footerWidth = getTextWidth(footer, footerFontSize);
         d.setColor(Color.GREEN.darker());
-        d.drawText(800 / 2 - 180, 600 - 100, "Press SPACE to return", 30);
+        d.drawText((screenWidth / 2) - (footerWidth / 2), screenHeight - 80, footer, footerFontSize);
+    }
+
+    /**
+     * Uses FontMetrics to calculate accurate text width.
+     */
+    private int getTextWidth(String text, int fontSize) {
+        BufferedImage tempImg = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = tempImg.getGraphics();
+        g.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, fontSize));
+        FontMetrics fm = g.getFontMetrics();
+        int width = fm.stringWidth(text);
+        g.dispose();
+        return width;
     }
 
     @Override
     public boolean shouldStop() {
-        // Màn hình này sẽ được bọc bởi KeyPressStoppableAnimation,
-        // vì vậy nó không bao giờ nên tự dừng.
+        // Sử dụng KeyPressStoppableAnimation bên ngoài để dừng khi nhấn phím
         return false;
     }
 }
