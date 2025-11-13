@@ -4,69 +4,70 @@ import biuoop.DrawSurface;
 import biuoop.KeyboardSensor;
 import geometry.Point;
 import geometry.Rectangle;
-import menu.MenuSelection; // <-- Import tệp mới
+import menu.MenuSelection;
 
 import java.awt.Color;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 
 /**
- * Một màn hình Tạm dừng tương tác với các tùy chọn.
+ * Màn hình tạm dừng có các nút điều khiển được căn giữa hoàn hảo.
  */
 public class PauseScreen implements Animation {
     private KeyboardSensor keyboard;
     private MenuSelection selection;
-    private boolean isAlreadyPressed; // Sửa lỗi "sticky key"
+    private boolean isAlreadyPressed;
 
-    // Hằng số bố cục nút
+    // Layout constants
     private static final int BUTTON_WIDTH = 250;
     private static final int BUTTON_HEIGHT = 50;
-    private static final int CENTER_X = 800 / 2; // Giả sử chiều rộng 800
-    private static final int START_Y = 250;
     private static final int BUTTON_SPACING = 20;
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 600;
+    private static final int CENTER_X = SCREEN_WIDTH / 2;
+    private static final int CENTER_Y = SCREEN_HEIGHT / 2;
 
-    /**
-     * Hàm khởi tạo mới, nhận KeyboardSensor.
-     */
     public PauseScreen(KeyboardSensor k) {
         this.keyboard = k;
         this.selection = MenuSelection.NONE;
-        // Giả định phím "p" (để vào đây) vẫn đang được nhấn
         this.isAlreadyPressed = true;
     }
 
     @Override
     public void doOneFrame(DrawSurface d) {
-        // 1. Vẽ lớp phủ bán trong suốt
-        d.setColor(new Color(0, 0, 0)); // Đen mờ
+        // --- Background overlay ---
+        d.setColor(new Color(0, 0, 0)); // translucent black overlay
         d.fillRectangle(0, 0, d.getWidth(), d.getHeight());
 
-        // 2. Vẽ tiêu đề "PAUSED"
+        // --- Title ---
+        String title = "PAUSED";
+        int titleWidth = getTextWidth(title, 60);
         d.setColor(Color.WHITE);
-        d.drawText(CENTER_X - 110, 150, "PAUSED", 60);
+        d.drawText(CENTER_X - (titleWidth / 2), 150, title, 60);
 
-        int currentY = START_Y;
+        // --- Button positions ---
+        int totalHeight = (2 * BUTTON_HEIGHT) + BUTTON_SPACING; // 2 buttons
+        int startY = CENTER_Y - (totalHeight / 2); // vertically centered
 
-        // --- Nút CONTINUE (Tiếp tục) ---
-        // Sửa lỗi vòng lặp vô hạn - Đổi "space" thành "enter"
+        // --- CONTINUE Button ---
         boolean continuePressed = keyboard.isPressed(KeyboardSensor.ENTER_KEY);
-        drawButton(d, "CONTINUE (Enter)", currentY, Color.GREEN.darker(), continuePressed);
+        drawButton(d, "CONTINUE (Enter)", startY, Color.GREEN.darker(), continuePressed);
 
-        currentY += BUTTON_HEIGHT + BUTTON_SPACING;
+        // --- EXIT Button ---
+        boolean exitPressed = keyboard.isPressed("e");
+        drawButton(d, "EXIT TO MENU (E)", startY + BUTTON_HEIGHT + BUTTON_SPACING, Color.RED.darker(), exitPressed);
 
-        // --- Nút EXIT TO MENU (Thoát) ---
-        boolean exitPressed = keyboard.isPressed("e"); // Dùng phím 'E'
-        drawButton(d, "EXIT TO MENU (E)", currentY, Color.RED.darker(), exitPressed);
-
-        // --- Xử lý Logic Sticky Key ---
+        // --- Input handling (debounce/sticky key fix) ---
         if (this.isAlreadyPressed) {
-            // Nếu phím "p" (hoặc phím khác) vẫn đang được nhấn, kiểm tra xem nó đã được nhả ra chưa
-            if (!keyboard.isPressed(KeyboardSensor.ENTER_KEY) && !keyboard.isPressed("e")
-                    && !keyboard.isPressed("p")) { // <-- Lắng nghe phím "P"
+            if (!keyboard.isPressed(KeyboardSensor.ENTER_KEY)
+                    && !keyboard.isPressed("e")
+                    && !keyboard.isPressed("p")) {
                 this.isAlreadyPressed = false;
             }
         } else {
-            // Chỉ chấp nhận input MỚI sau khi tất cả các phím đã được nhả ra
             if (continuePressed) {
-                this.selection = MenuSelection.PLAY; // PLAY có nghĩa là "Continue"
+                this.selection = MenuSelection.PLAY;
             } else if (exitPressed) {
                 this.selection = MenuSelection.EXIT;
             }
@@ -74,11 +75,12 @@ public class PauseScreen implements Animation {
     }
 
     /**
-     * Hàm trợ giúp để vẽ các nút.
+     * Draws a centered button with properly centered text.
      */
     private void drawButton(DrawSurface d, String text, int y, Color baseColor, boolean isActive) {
         int x = CENTER_X - (BUTTON_WIDTH / 2);
         Rectangle buttonRect = new Rectangle(new Point(x, y), BUTTON_WIDTH, BUTTON_HEIGHT);
+
         Color fillColor = baseColor;
         Color outlineColor = baseColor.brighter();
 
@@ -87,28 +89,41 @@ public class PauseScreen implements Animation {
             outlineColor = Color.WHITE;
         }
 
+        // Draw button box
         d.setColor(fillColor);
         d.fillRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
                 (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
+
         d.setColor(outlineColor);
         d.drawRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
                 (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
 
+        // --- Center text properly ---
+        int textWidth = getTextWidth(text, 24);
         d.setColor(Color.WHITE);
-        // Căn giữa văn bản
-        int textWidth = text.length() * 10;
-        d.drawText(x + (BUTTON_WIDTH / 2) - (textWidth / 2) - 5, y + (BUTTON_HEIGHT / 2) + 8, text, 24);
+        int textX = x + (BUTTON_WIDTH / 2) - (textWidth / 2);
+        int textY = y + (BUTTON_HEIGHT / 2) + 8; // visually centered
+        d.drawText(textX, textY, text, 24);
+    }
+
+    /**
+     * Uses FontMetrics to accurately measure string width.
+     */
+    private int getTextWidth(String text, int fontSize) {
+        BufferedImage tempImg = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = tempImg.getGraphics();
+        g.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, fontSize));
+        FontMetrics fm = g.getFontMetrics();
+        int width = fm.stringWidth(text);
+        g.dispose();
+        return width;
     }
 
     @Override
     public boolean shouldStop() {
-        // Dừng animation khi người dùng đã chọn (Enter hoặc E)
         return this.selection != MenuSelection.NONE;
     }
 
-    /**
-     * Trả về lựa chọn của người dùng cho GameLevel.
-     */
     public MenuSelection getSelection() {
         return this.selection;
     }
