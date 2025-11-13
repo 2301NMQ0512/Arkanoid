@@ -34,7 +34,9 @@
     "Application.main.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/BOOTCAMP/Arkanoid",
     "onboarding.tips.debug.path": "D:/myproject/src/Main.java",
@@ -54,6 +56,7 @@
     <attachedChunks>
       <set>
         <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.27397.103" />
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-IU-252.27397.103" />
       </set>
     </attachedChunks>
   </component>
@@ -65,6 +68,7 @@
       <option name="presentableId" value="Default" />
       <updated>1758985851209</updated>
       <workItem from="1763038958756" duration="258000" />
+      <workItem from="1763039289186" duration="79000" />
     </task>
     <servers />
   </component>
