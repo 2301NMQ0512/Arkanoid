@@ -1,110 +1,84 @@
-package animation; // <-- THAY ĐỔI: Bây giờ là package 'animation'
+package animation;
 
 import biuoop.DrawSurface;
 import biuoop.KeyboardSensor;
 import geometry.Point;
 import geometry.Rectangle;
+import menu.MenuSelection; // <-- Import tệp mới
+
 import java.awt.Color;
-// --- CÁC IMPORT MỚI ĐÃ ĐƯỢC THÊM VÀO ---
-import menu.MenuSelection; // <-- THÊM MỚI: Import từ package 'menu'
-import menu.MouseSensor;   // <-- THÊM MỚI: Import từ package 'menu'
-// ------------------------------------
 
 /**
- * Animation cho màn hình tạm dừng.
+ * Một màn hình Tạm dừng tương tác với các tùy chọn.
  */
 public class PauseScreen implements Animation {
     private KeyboardSensor keyboard;
-    private MouseSensor mouse;
     private MenuSelection selection;
+    private boolean isAlreadyPressed; // Sửa lỗi "sticky key"
 
     // Hằng số bố cục nút
-    private static final int BUTTON_WIDTH = 200;
+    private static final int BUTTON_WIDTH = 250;
     private static final int BUTTON_HEIGHT = 50;
-    private static final int BUTTON_SPACING = 20;
-    private static final int CENTER_X = 800 / 2;
+    private static final int CENTER_X = 800 / 2; // Giả sử chiều rộng 800
     private static final int START_Y = 250;
+    private static final int BUTTON_SPACING = 20;
 
-    public PauseScreen(KeyboardSensor k, MouseSensor m) {
+    /**
+     * Hàm khởi tạo mới, nhận KeyboardSensor.
+     */
+    public PauseScreen(KeyboardSensor k) {
         this.keyboard = k;
-        this.mouse = m;
         this.selection = MenuSelection.NONE;
+        // Giả định phím "p" (để vào đây) vẫn đang được nhấn
+        this.isAlreadyPressed = true;
     }
 
     @Override
     public void doOneFrame(DrawSurface d) {
         // 1. Vẽ lớp phủ bán trong suốt
-        d.setColor(new Color(0, 0, 0, 150)); // Đen mờ 60%
-        d.fillRectangle(0, 0, 800, 600);
+        d.setColor(new Color(0, 0, 0)); // Đen mờ
+        d.fillRectangle(0, 0, d.getWidth(), d.getHeight());
 
         // 2. Vẽ tiêu đề "PAUSED"
         d.setColor(Color.WHITE);
         d.drawText(CENTER_X - 110, 150, "PAUSED", 60);
 
-        // 3. Lấy trạng thái chuột
-        int mouseX = (int) this.mouse.getX();
-        int mouseY = (int) this.mouse.getY();
-        boolean mousePressed = this.mouse.isPressed(MouseSensor.LEFT_CLICK);
-
-        // 4. Vẽ các nút
         int currentY = START_Y;
 
-        // --- Nút CONTINUE ---
-        Rectangle continueRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean continueHover = isMouseInside(continueRect, mouseX, mouseY);
+        // --- Nút CONTINUE (Tiếp tục) ---
+        // Sửa lỗi vòng lặp vô hạn - Đổi "space" thành "enter"
+        boolean continuePressed = keyboard.isPressed(KeyboardSensor.ENTER_KEY);
+        drawButton(d, "CONTINUE (Enter)", currentY, Color.GREEN.darker(), continuePressed);
 
-        // --- SỬA LỖI "STICKY KEY": Dùng "space" để tiếp tục ---
-        boolean continuePressed = keyboard.isPressed("space");
-        drawButton(d, "CONTINUE (Space)", continueRect, Color.GREEN.darker(), continueHover || continuePressed);
-
-        if (continuePressed || (continueHover && mousePressed)) {
-            this.selection = MenuSelection.PLAY; // PLAY = Continue
-        }
         currentY += BUTTON_HEIGHT + BUTTON_SPACING;
 
-        // --- Nút REPLAY (RESTART) ---
-        Rectangle restartRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean restartHover = isMouseInside(restartRect, mouseX, mouseY);
-        boolean restartPressed = keyboard.isPressed("r");
-        drawButton(d, "REPLAY (R)", restartRect, Color.BLUE.darker(), restartHover || restartPressed);
-        if (restartPressed || (restartHover && mousePressed)) {
-            this.selection = MenuSelection.RESTART;
+        // --- Nút EXIT TO MENU (Thoát) ---
+        boolean exitPressed = keyboard.isPressed("e"); // Dùng phím 'E'
+        drawButton(d, "EXIT TO MENU (E)", currentY, Color.RED.darker(), exitPressed);
+
+        // --- Xử lý Logic Sticky Key ---
+        if (this.isAlreadyPressed) {
+            // Nếu phím "p" (hoặc phím khác) vẫn đang được nhấn, kiểm tra xem nó đã được nhả ra chưa
+            if (!keyboard.isPressed(KeyboardSensor.ENTER_KEY) && !keyboard.isPressed("e")
+                    && !keyboard.isPressed("p")) { // <-- Lắng nghe phím "P"
+                this.isAlreadyPressed = false;
+            }
+        } else {
+            // Chỉ chấp nhận input MỚI sau khi tất cả các phím đã được nhả ra
+            if (continuePressed) {
+                this.selection = MenuSelection.PLAY; // PLAY có nghĩa là "Continue"
+            } else if (exitPressed) {
+                this.selection = MenuSelection.EXIT;
+            }
         }
-        currentY += BUTTON_HEIGHT + BUTTON_SPACING;
-
-        // --- Nút EXIT TO MENU ---
-        Rectangle exitRect = new Rectangle(new Point(CENTER_X - (BUTTON_WIDTH / 2), currentY), BUTTON_WIDTH, BUTTON_HEIGHT);
-        boolean exitHover = isMouseInside(exitRect, mouseX, mouseY);
-        boolean exitPressed = keyboard.isPressed("e");
-        drawButton(d, "EXIT (E)", exitRect, Color.RED.darker(), exitHover || exitPressed);
-        if (exitPressed || (exitHover && mousePressed)) {
-            this.selection = MenuSelection.EXIT;
-        }
     }
 
-    // --- Các phương thức trợ giúp ---
-
-    @Override
-    public boolean shouldStop() {
-        return this.selection != MenuSelection.NONE;
-    }
-
-    public MenuSelection getSelection() {
-        return this.selection;
-    }
-
-    public void resetSelection() {
-        this.selection = MenuSelection.NONE;
-    }
-
-    private boolean isMouseInside(Rectangle rect, int x, int y) {
-        return (x >= rect.getUpperLeft().getX() &&
-                x <= rect.getUpperLeft().getX() + rect.getWidth() &&
-                y >= rect.getUpperLeft().getY() &&
-                y <= rect.getUpperLeft().getY() + rect.getHeight());
-    }
-
-    private void drawButton(DrawSurface d, String text, Rectangle buttonRect, Color baseColor, boolean isActive) {
+    /**
+     * Hàm trợ giúp để vẽ các nút.
+     */
+    private void drawButton(DrawSurface d, String text, int y, Color baseColor, boolean isActive) {
+        int x = CENTER_X - (BUTTON_WIDTH / 2);
+        Rectangle buttonRect = new Rectangle(new Point(x, y), BUTTON_WIDTH, BUTTON_HEIGHT);
         Color fillColor = baseColor;
         Color outlineColor = baseColor.brighter();
 
@@ -113,19 +87,29 @@ public class PauseScreen implements Animation {
             outlineColor = Color.WHITE;
         }
 
-        int x = (int) buttonRect.getUpperLeft().getX();
-        int y = (int) buttonRect.getUpperLeft().getY();
-        int w = (int) buttonRect.getWidth();
-        int h = (int) buttonRect.getHeight();
-
         d.setColor(fillColor);
-        d.fillRectangle(x, y, w, h);
+        d.fillRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
+                (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
         d.setColor(outlineColor);
-        d.drawRectangle(x, y, w, h);
+        d.drawRectangle((int) buttonRect.getUpperLeft().getX(), (int) buttonRect.getUpperLeft().getY(),
+                (int) buttonRect.getWidth(), (int) buttonRect.getHeight());
 
         d.setColor(Color.WHITE);
-        // Căn giữa văn bản (cách đơn giản)
+        // Căn giữa văn bản
         int textWidth = text.length() * 10;
-        d.drawText(x + (w / 2) - (textWidth / 2) - 5, y + (h / 2) + 8, text, 24);
+        d.drawText(x + (BUTTON_WIDTH / 2) - (textWidth / 2) - 5, y + (BUTTON_HEIGHT / 2) + 8, text, 24);
+    }
+
+    @Override
+    public boolean shouldStop() {
+        // Dừng animation khi người dùng đã chọn (Enter hoặc E)
+        return this.selection != MenuSelection.NONE;
+    }
+
+    /**
+     * Trả về lựa chọn của người dùng cho GameLevel.
+     */
+    public MenuSelection getSelection() {
+        return this.selection;
     }
 }
